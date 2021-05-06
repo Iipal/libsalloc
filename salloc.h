@@ -33,21 +33,26 @@
 #endif
 #endif
 
+#if !defined(from) && (!defined(__from_defined__) || !(__from_defined__))
+#define __from_defined__ 1
+#define from
+#endif
+
 /**
  * Custom constants and attributes
  */
 
-#if !defined(BUFFER)
-#define BUFFER (0)
+#if !defined(SALLOC_BUFFER)
+#define SALLOC_BUFFER (0)
 #endif
-#if !defined(BUFFER_LENGTH)
-#define BUFFER_LENGTH (1)
+#if !defined(SALLOC_BUFFER_LENGTH)
+#define SALLOC_BUFFER_LENGTH (1)
 #endif
-#if !defined(PREVIOUS_OFFSET)
-#define PREVIOUS_OFFSET (2)
+#if !defined(SALLOC_PREVIOUS_OFFSET)
+#define SALLOC_PREVIOUS_OFFSET (2)
 #endif
-#if !defined(CURRENT_OFFSET)
-#define CURRENT_OFFSET (3)
+#if !defined(SALLOC_CURRENT_OFFSET)
+#define SALLOC_CURRENT_OFFSET (3)
 #endif
 
 #if !defined(SALLOC_DEFAULT_ALIGNMENT)
@@ -147,6 +152,18 @@
 #  endif
 #endif
 
+#if !defined(SALLOC_ATTR_DEPRECATED)
+#  if __is_c2x_support__
+#    define SALLOC_ATTR_DEPRECATED(msg) [[gnu::deprecated(msg)]]
+#  else
+#    if __has_attribute(deprecated)
+#      define SALLOC_ATTR_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#    else
+#      define SALLOC_ATTR_DEPRECATED
+#    endif
+#  endif
+#endif
+
 #if !defined(SALLOC_ATTR_VECCALL_CONST)
 #  define SALLOC_ATTR_VECCALL_CONST SALLOC_ATTR_VECCALL SALLOC_ATTR_CONST
 #endif
@@ -161,6 +178,7 @@
 #  define SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD \
     SALLOC_ATTR_FLATTEN SALLOC_ATTR_VECCALL SALLOC_ATTR_OVERLOAD
 #endif
+
 /**
  * Custom types definition
  */
@@ -215,5 +233,148 @@ typedef union {
 } salloc_allocator_t SALLOC_ATTR_TRANSPARENT;
 
 #endif
+
+/**
+ * Function Prototypes
+ */
+
+SALLOC_ATTR_VECCALL_CONST static inline salloc_vec_t
+    salloc_init(register const void * const restrict buff,
+                register const size_t                buff_length);
+
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void *
+    salloc(register salloc_vec_t * restrict allocator, register const size_t size);
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void *
+    salloc(register salloc_vec_t * const restrict allocator,
+           register const size_t                  size,
+           register const size_t                  align);
+
+SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
+    srealloc(register salloc_vec_t * const restrict allocator,
+             register void * const restrict         old_memory,
+             register const size_t                  old_size,
+             register const size_t                  new_size);
+SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
+    srealloc(register salloc_vec_t * const restrict allocator,
+             register void * const restrict         old_memory,
+             register const size_t                  old_size,
+             register const size_t                  new_size,
+             register const size_t                  align);
+SALLOC_ATTR_VECCALL_CONST_OVERLOAD static inline void
+    sfree(register salloc_vec_t * restrict allocator, void * restrict pointer)
+        SALLOC_ATTR_DEPRECATED("Not needed to implement");
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void
+    sfree(register salloc_vec_t * const restrict allocator);
+
+SALLOC_ATTR_VECCALL_CONST
+static inline uintptr_t salloc_align_forward(register const uintptr_t pointer,
+                                             register const size_t    align);
+
+/**
+ * Function Definitions
+ */
+
+SALLOC_ATTR_VECCALL_CONST static inline salloc_vec_t
+    salloc_init(register const void * const restrict buff,
+                register const size_t                buff_length) {
+  const salloc_allocator_t allocator SALLOC_ATTR_MAYBE_UNUSED;
+
+  return (typeof(allocator.vector)){(typeof(allocator.vector[0]))buff,
+                                    (typeof(allocator.vector[0]))buff_length};
+}
+
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void *
+    salloc(register salloc_vec_t * restrict allocator, register const size_t size) {
+  return salloc(allocator, size, SALLOC_DEFAULT_ALIGNMENT);
+}
+
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void *
+    salloc(register salloc_vec_t * const restrict allocator,
+           register const size_t                  size,
+           register const size_t                  align) {
+  const salloc_vec_t in_allocator = *allocator;
+  const typeof(in_allocator[0]) current_pointer =
+      in_allocator[SALLOC_BUFFER] + in_allocator[SALLOC_CURRENT_OFFSET];
+  const uintptr_t relative_offset =
+      salloc_align_forward(current_pointer, align) - in_allocator[SALLOC_BUFFER];
+  const uintptr_t current_offset = (typeof(size))relative_offset + size;
+
+  if (current_offset <= (typeof(current_offset))in_allocator[SALLOC_BUFFER_LENGTH]) {
+    const typeof(in_allocator)
+        out_allocator = {in_allocator[SALLOC_BUFFER],
+                         in_allocator[SALLOC_BUFFER_LENGTH],
+                         (typeof(in_allocator[SALLOC_PREVIOUS_OFFSET]))relative_offset,
+                         (typeof(in_allocator[SALLOC_CURRENT_OFFSET]))current_offset};
+
+    *allocator = out_allocator;
+
+    return __extension__((void *)in_allocator[SALLOC_BUFFER] + relative_offset);
+  } else {
+    return nullptr;
+  }
+}
+
+SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
+    srealloc(register salloc_vec_t * const restrict allocator,
+             register void * const restrict         old_memory,
+             register const size_t                  old_size,
+             register const size_t                  new_size) {
+  return srealloc(allocator, old_memory, old_size, new_size, SALLOC_DEFAULT_ALIGNMENT);
+}
+
+SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
+    srealloc(register salloc_vec_t * const restrict allocator,
+             register void * const restrict         old_memory,
+             register const size_t                  old_size,
+             register const size_t                  new_size,
+             register const size_t                  align) {
+  const salloc_vec_t in_allocator = *allocator;
+
+  if ((old_memory == nullptr) || (old_size == 0)) {
+    return __extension__ salloc(allocator, new_size, align);
+  } else if ((in_allocator[SALLOC_BUFFER] <= (typeof(in_allocator[0]))old_memory) &&
+             ((typeof(in_allocator[0]))old_memory <
+              (in_allocator[SALLOC_BUFFER] + in_allocator[SALLOC_BUFFER_LENGTH]))) {
+    if ((in_allocator[SALLOC_BUFFER] + in_allocator[SALLOC_PREVIOUS_OFFSET]) ==
+        (typeof(in_allocator[0]))old_memory) {
+      return old_memory;
+    } else {
+      return salloc(allocator, new_size, align);
+    }
+  } else {
+    return nullptr;
+  }
+}
+
+SALLOC_ATTR_VECCALL_CONST_OVERLOAD static inline void
+    sfree(register salloc_vec_t * restrict allocator, void * restrict pointer) {
+  /* Not needed to implement */
+  (void)allocator;
+  (void)pointer;
+}
+
+SALLOC_ATTR_VECCALL_OVERLOAD static inline void
+    sfree(register salloc_vec_t * const restrict allocator) {
+  const salloc_vec_t in_allocator        = *allocator;
+  const typeof(*allocator) out_allocator = {
+      in_allocator[SALLOC_BUFFER],
+      in_allocator[SALLOC_BUFFER_LENGTH],
+      0,
+      0 /* reset all offsets */
+  };
+
+  *allocator = out_allocator;
+}
+
+SALLOC_ATTR_VECCALL_CONST static inline uintptr_t
+    salloc_align_forward(register const uintptr_t pointer, register const size_t align) {
+  register const uintptr_t modulo = pointer % (typeof(pointer))align;
+
+  if (modulo != 0) {
+    return (pointer + (typeof(pointer))align - modulo);
+  } else {
+    return (pointer);
+  }
+}
 
 #endif /* __SALLOC_H__ */
