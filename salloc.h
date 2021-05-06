@@ -4,6 +4,8 @@
 #include <stddef.h> /* for size_t */
 #include <stdint.h> /* for uintptr */
 
+#pragma clang diagnostic ignored "-Wgcc-compat"
+
 /**
  * Some helper type-operator-like-macroses defines
  */
@@ -159,7 +161,7 @@
 #    if __has_attribute(deprecated)
 #      define SALLOC_ATTR_DEPRECATED(msg) __attribute__((deprecated(msg)))
 #    else
-#      define SALLOC_ATTR_DEPRECATED
+#      define SALLOC_ATTR_DEPRECATED(msg)
 #    endif
 #  endif
 #endif
@@ -260,9 +262,14 @@ SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
              register const size_t                  old_size,
              register const size_t                  new_size,
              register const size_t                  align);
+
 SALLOC_ATTR_VECCALL_CONST_OVERLOAD static inline void
     sfree(register salloc_vec_t * restrict allocator, void * restrict pointer)
-        SALLOC_ATTR_DEPRECATED("Not needed to implement");
+        SALLOC_ATTR_DEPRECATED("Not needed to implement: sfree(salloc_vec_t *, void *)") {
+  /* Not needed to implement */
+  (void)allocator;
+  (void)pointer;
+}
 SALLOC_ATTR_VECCALL_OVERLOAD static inline void
     sfree(register salloc_vec_t * const restrict allocator);
 
@@ -344,13 +351,6 @@ SALLOC_ATTR_FLATTEN_VECCALL_OVERLOAD static inline void *
   } else {
     return nullptr;
   }
-}
-
-SALLOC_ATTR_VECCALL_CONST_OVERLOAD static inline void
-    sfree(register salloc_vec_t * restrict allocator, void * restrict pointer) {
-  /* Not needed to implement */
-  (void)allocator;
-  (void)pointer;
 }
 
 SALLOC_ATTR_VECCALL_OVERLOAD static inline void

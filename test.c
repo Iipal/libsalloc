@@ -24,4 +24,5 @@ int main(void) {
   }
 
   sfree(&allocator);
+  sfree(&allocator, NULL);
 }

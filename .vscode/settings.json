@@ -2,29 +2,9 @@
     "files.associations": {
         "*.h": "c",
         "*.c": "c",
-        "**/*.js": "javascriptreact",
-        "**/*.html": "html",
-        "**/templates/**/*.html": "django-html",
-        "**/requirements{/**,*}.{txt,in}": "pip-requirements",
-        "*.js": "javascript",
         ".clang-format": "jsonc",
-        "atomic": "c",
-        "cstdint": "c",
-        "memory": "c",
-        "array": "c",
-        "*.tcc": "c",
-        "string": "c",
-        "vector": "c",
-        "string_view": "c",
-        "functional": "c",
-        "istream": "c",
-        "limits": "c",
-        "ostream": "c",
-        "ranges": "c",
-        "ratio": "c",
-        "sstream": "c",
-        "stop_token": "c",
-        "streambuf": "c",
-        "tuple": "c"
-    }
+    },
+    "cSpell.words": [
+        "srealloc"
+    ]
 }
