@@ -24,20 +24,19 @@
 #  define __typeof_defined__ 1
 #  define typeof(x) __typeof__(x)
 #endif
-#endif
 
 #if !defined(alignof) && (!defined(__alignof_defined__) || !(__alignof_defined__))
-#define __alignof_defined__ 1
-#if __STDC__ > 201710L
-#  define alignof(x) (_Alignof(x))
-#else
-#  define alignof(x) (__alignof__(x))
-#endif
+#  define __alignof_defined__ 1
+#  if __STDC__ > 201710L
+#    define alignof(x) (_Alignof(x))
+#  else
+#    define alignof(x) (__alignof__(x))
+#  endif
 #endif
 
 #if !defined(from) && (!defined(__from_defined__) || !(__from_defined__))
-#define __from_defined__ 1
-#define from
+#  define __from_defined__ 1
+#  define from
 #endif
 
 /**
@@ -45,62 +44,63 @@
  */
 
 #if !defined(SALLOC_BUFFER)
-#define SALLOC_BUFFER (0)
+#  define SALLOC_BUFFER (0)
 #endif
 #if !defined(SALLOC_BUFFER_LENGTH)
-#define SALLOC_BUFFER_LENGTH (1)
+#  define SALLOC_BUFFER_LENGTH (1)
 #endif
 #if !defined(SALLOC_PREVIOUS_OFFSET)
-#define SALLOC_PREVIOUS_OFFSET (2)
+#  define SALLOC_PREVIOUS_OFFSET (2)
 #endif
 #if !defined(SALLOC_CURRENT_OFFSET)
-#define SALLOC_CURRENT_OFFSET (3)
+#  define SALLOC_CURRENT_OFFSET (3)
 #endif
 
 #if !defined(SALLOC_DEFAULT_ALIGNMENT)
-#define SALLOC_DEFAULT_ALIGNMENT (alignof(void *) * 2)
+#  define SALLOC_DEFAULT_ALIGNMENT (alignof(void *) * 2)
 #endif
 
 #if !defined(__is_c2x_support__)
-#if __STDC__ > 201710L
-#  define __is_c2x_support__ 1
-#else
-#  define __is_c2x_support__ 0
-#endif
+#  if __STDC__ > 201710L
+#    define __is_c2x_support__ 1
+#  else
+#    define __is_c2x_support__ 0
+#  endif
 #endif
 
 #if !defined(SALLOC_ATTR_ALIGNOF)
-#if __is_c2x_support__
-#  define SALLOC_ATTR_ALIGNOF(x) [[gnu::aligned(alignof(x))]]
-#else
-#  if __has_attribute(aligned)
-#    define SALLOC_ATTR_ALIGNOF(x) __attribute__((aligned(alignof(x))))
+#  if __is_c2x_support__
+#    define SALLOC_ATTR_ALIGNOF(x) [[gnu::aligned(alignof(x))]]
 #  else
-#    define SALLOC_ATTR_ALIGNOF(x)
+#    if __has_attribute(aligned)
+#      define SALLOC_ATTR_ALIGNOF(x) __attribute__((aligned(alignof(x))))
+#    else
+#      define SALLOC_ATTR_ALIGNOF(x)
+#    endif
 #  endif
-#endif
 #endif
 
 #if !defined(SALLOC_ATTR_TRANSPARENT)
-#if __is_c2x_support__
-#  define SALLOC_ATTR_TRANSPARENT [[gnu::transparent_union]]
-#else
-#  if __has_attribute(transparent_union)
-#    define SALLOC_ATTR_TRANSPARENT __attribute__((transparent_union))
+#  if __is_c2x_support__
+#    define SALLOC_ATTR_TRANSPARENT [[gnu::transparent_union]]
 #  else
-#    define SALLOC_ATTR_TRANSPARENT
+#    if __has_attribute(transparent_union)
+#      define SALLOC_ATTR_TRANSPARENT __attribute__((transparent_union))
+#    else
+#      define SALLOC_ATTR_TRANSPARENT
+#    endif
 #  endif
-#endif
 #endif
 
 #if !defined(SALLOC_ATTR_VECCALL)
-#if __is_c2x_support__
-#  define SALLOC_ATTR_VECCALL [[clang::vectorcall]]
-#else
-#  if __has_attribute(vectorcall)
-#    define SALLOC_ATTR_VECCALL __attribute__((vectorcall))
+#  if __is_c2x_support__
+#    define SALLOC_ATTR_VECCALL [[clang::vectorcall]]
 #  else
-#    define SALLOC_ATTR_VECCALL
+#    if __has_attribute(vectorcall)
+#      define SALLOC_ATTR_VECCALL __attribute__((vectorcall))
+#    else
+#      define SALLOC_ATTR_VECCALL
+#    endif
 #  endif
 #endif
 
@@ -192,12 +192,7 @@ typedef uintptr_t __attribute__((__aligned__, __ext_vector_type__(4))) v4pu_t;
 
 #if !defined(__salloc_vec_defined__) || !(__salloc_vec_defined__)
 #  define __salloc_vec_defined__ 1
-
-#  if defined(__v4pu_defined__)
 typedef v4pu_t salloc_vec_t;
-#  else
-typedef uintptr_t __attribute__((__aligned__, __ext_vector_type__(4))) salloc_vec_t;
-#  endif
 #endif
 
 #if !defined(__salloc_defined__) || !(__salloc_defined__)
@@ -209,29 +204,15 @@ typedef struct s_salloc {
   uintptr_t                previous_offset;
   uintptr_t                current_offset;
 } SALLOC_ATTR_ALIGNOF(salloc_vec_t) salloc_t;
+
 #endif
 
 #if !defined(__salloc_allocator_defined__) || !(__salloc_allocator_defined__)
 #  define __salloc_allocator_defined__ 1
 
 typedef union {
-#  if __salloc_defined__
-  salloc_t data;
-#  else
-  struct {
-    unsigned char * restrict buffer;
-    size_t                   buffer_length;
-    uintptr_t                previous_offset;
-    uintptr_t                current_offset;
-  } data;
-#  endif
-
-#  if __salloc_vec_defined__
+  salloc_t     data;
   salloc_vec_t vector;
-#  else
-  uintptr_t vector[4];
-#  endif
-
 } salloc_allocator_t SALLOC_ATTR_TRANSPARENT;
 
 #endif
