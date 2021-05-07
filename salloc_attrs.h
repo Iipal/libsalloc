@@ -18,12 +18,6 @@
 #endif
 
 #if __is_c2x_support__
-#  define alignof(x) (_Alignof(x))
-#else
-#  define alignof(x) (__alignof__(x))
-#endif
-
-#if __is_c2x_support__
 #  define libsalloc_attr_alignof(x) [[gnu::aligned(alignof(x))]]
 #else
 #  if __has_attribute(aligned)
