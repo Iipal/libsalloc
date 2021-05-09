@@ -1,18 +1,34 @@
 #ifndef __SALLOC_H__
 #define __SALLOC_H__
 
+#if defined(SALLOC_UNSAFE)
+#  undef SALLOC_UNSAFE
+/**
+ * Removes some nullptr-checks. Better performance but causes UB.
+ */
+#  define SALLOC_UNSAFE 1
+#endif
+
+#if defined(SALLOC_UNSAFE_MAPPING)
+#  undef SALLOC_UNSAFE_MAPPING
+/**
+ * Removes some mapping checks, like check of start\end of available memory
+ */
+#  define SALLOC_UNSAFE_MAPPING 1
+#endif
+
 #include "salloc_attrs.h"
 #include "salloc_types.h" /* may be removed in future */
 
 /**
  * New prototypes:
  */
-libsalloc_attr_veccall_const static inline salloc_mem_t
+libsalloc_attr_veccall_const static inline salloc_t
     salloc_init(register const void * const restrict buff,
                 register const size_t                buff_length);
 
 libsalloc_attr_veccall_overload static inline void *
-    salloc(register salloc_mem_t * const restrict mem, register const size_t size);
+    salloc(register salloc_t * const restrict mem, register const size_t size);
 
 /**
  *  Previous prototypes:
@@ -57,5 +73,6 @@ libsalloc_attr_veccall_const static inline uintptr_t
     _salloc_align_forward(register const uintptr_t pointer, register const size_t align);
 
 #include "salloc_internal.h"
+#include "salloc_undef.h"
 
 #endif /* __SALLOC_H__ */

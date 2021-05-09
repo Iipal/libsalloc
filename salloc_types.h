@@ -1,6 +1,10 @@
 #ifndef __SALLOC_TYPES_H__
 #define __SALLOC_TYPES_H__
 
+#if !defined(__SALLOC_H__)
+#  error "Do not include `salloc_types.h` directly."
+#endif
+
 #include "salloc_attrs.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -15,35 +19,43 @@
 #  define alignof(x) (__alignof__(x))
 #endif
 
-#define libsalloc_define_vec(n) \
+#undef __salloc_define_vec
+#define __salloc_define_vec(n) \
   typedef uintptr_t __attribute__((__aligned__, __ext_vector_type__(n))) v##n##pu_t; \
-  typedef v##n##pu_t salloc_vec##n##_t;
+  typedef v##n##pu_t salloc_vec##n##_t
 
-libsalloc_define_vec(4);
-libsalloc_define_vec(2);
+__salloc_define_vec(4);
+__salloc_define_vec(2);
 
-typedef struct s_salloc_mem_addr_t {
+#undef __salloc_define_vec
+
+typedef struct s_chunk_map {
+  uintptr_t _size : (8 * __CHAR_BIT__) - 4;
+  char      _flags : 4;
+} salloc_chunk_map_t;
+
+typedef struct s_salloc_mem_t {
   /* cursor to the end of available space \ start of each new chunk */
-  void * const restrict cursor;
-  void * const restrict start;
-  void * const restrict end;
-  const size_t          capacity;
-} libsalloc_attr_alignof(salloc_vec4_t) salloc_mem_addr_t;
+  uint8_t * restrict start;
+  uint8_t * restrict end;
+  uint8_t * restrict cursor;
+  size_t             capacity;
+} libsalloc_attr_alignof(salloc_vec4_t) salloc_addr_t;
 
-typedef union u_salloc_mem {
-  salloc_mem_addr_t addr;
-  salloc_vec4_t     vec;
-} salloc_mem_t libsalloc_attr_transparent;
+typedef union u_salloc {
+  salloc_addr_t addr;
+  salloc_vec4_t vec;
+} salloc_t libsalloc_attr_transparent;
 
-typedef struct s_salloc {
-  unsigned char * restrict buff;
-  size_t                   buff_length;
-  uintptr_t                previous_offset;
-  uintptr_t                current_offset;
-} libsalloc_attr_alignof(salloc_vec4_t) salloc_t;
+typedef struct _s_salloc {
+  uint8_t * restrict buff;
+  size_t             buff_length;
+  uintptr_t          previous_offset;
+  uintptr_t          current_offset;
+} libsalloc_attr_alignof(salloc_vec4_t) _salloc_t;
 
 typedef union {
-  salloc_t      data;
+  _salloc_t     data;
   salloc_vec4_t vector;
 } salloc_allocator_t libsalloc_attr_transparent;
 
