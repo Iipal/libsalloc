@@ -29,10 +29,13 @@ __salloc_define_vec(2);
 
 #undef __salloc_define_vec
 
-typedef struct s_chunk_map {
-  uintptr_t _size : (8 * __CHAR_BIT__) - 4;
-  char      _flags : 4;
-} salloc_chunk_map_t;
+typedef struct s_salloc_chunk {
+  uintptr_t size : 60;
+  uint8_t   inuse : 1;
+  uint8_t   __alignment_dummy : 3 libsalloc_attr_munused;
+} libsalloc_attr_packed salloc_chunk_t;
+
+#define _(x) sizeof(salloc_chunk_t) /
 
 typedef struct s_salloc_mem_t {
   /* cursor to the end of available space \ start of each new chunk */

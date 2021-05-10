@@ -3,7 +3,7 @@
 int main(void) {
   static uint_least8_t buffer[4096];
 
-  salloc_mem_t m = salloc_init(buffer, sizeof buffer / sizeof *buffer);
+  salloc_t m = salloc_init(buffer, sizeof buffer / sizeof *buffer);
 
   const uint_fast16_t chunk_1_size = 256, chunk_2_size = 255, chunk_3_size = 96;
 
@@ -23,5 +23,5 @@ int main(void) {
   //   byte from[chunk_3] = 42;
   // }
 
-  // sfree(&allocator);
+  sfree(&m);
 }

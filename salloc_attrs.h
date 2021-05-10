@@ -118,6 +118,16 @@
 #endif
 
 #if __is_cpp_attr__
+#  define libsalloc_attr_packed [[packed]]
+#else
+#  if __has_attribute(packed)
+#    define libsalloc_attr_packed __attribute__((packed))
+#  else
+#    define libsalloc_attr_packed
+#  endif
+#endif
+
+#if __is_cpp_attr__
 #  define libsalloc_attr_deprecated(msg) [[gnu::deprecated(msg)]]
 #else
 #  if __has_attribute(deprecated)
