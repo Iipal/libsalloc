@@ -29,7 +29,7 @@
 #  define __sva_get_cursor(v)   ((v)[__sva_cursor])
 #  define __sva_get_capacity(v) ((v)[__sva_capacity])
 
-#  define __sva_move_cursor(v, s) ((__s2c_t(v))(__s2c_ui8ptr(v) + __s2c_uiptr(s)))
+#  define __sva_move_cursor(v, s) (__s2c_ui8ptr(v) + __s2c_uiptr(s))
 
 #  define __sva_map(v) \
     { __sva_get_start(v), __sva_get_end(v), __sva_get_cursor(v), __sva_get_capacity(v) }
@@ -50,7 +50,7 @@
 #  define __s2c_ui8ptr(x)  ((uint8_t *)(x))
 #  define __s2c_uiptr(x)   ((uintptr_t)(x))
 #  define __s2c_size(x)    ((size_t)(x))
-#  define __s2c_chunk(x)   ((salloc_chunk_t *)((void *)(x)))
+#  define __s2c_chunk(x)   ((salloc_chunk_t *)(__s2c_vptr(x)))
 #  define __s2c_vec4(x)    ((salloc_vec4_t)(x))
 #  define __s2c_vec4ptr(x) ((salloc_vec4_t *)(x))
 #  define __s2c_slc(x)     ((salloc_t)(x))
@@ -96,9 +96,10 @@
 #  define __sc_v_inuse  1 // v stands for value
 #  define __sc_vn_inuse 0 // n stands for not
 
-#  define __sc_fl_size       (__s2c_uiptr(sizeof(salloc_chunk_t))) // fl stands for free-list
-#  define __sc_flbd_size     (__s2c_uiptr(__sc_fl_size * 2)) // bd stands for bi-directional
-#  define __sc_wflbd_size(x) ((x) + __sc_flbd_size)          // w  stands for with
+#  define __sc_fl_size   (__s2c_uiptr(sizeof(salloc_chunk_t))) // fl stands for free-list
+#  define __sc_flbd_size (__s2c_uiptr(__sc_fl_size * 2)) // bd stands for bi-directional
+#  define __sc_wflbd_size(x) \
+    (__s2c_uiptr(__s2c_uiptr(x) + __sc_flbd_size)) // w  stands for with
 
 #  define __sc_ptr_get_chunk(x) (__s2c_chunk(__s2c_ui8ptr(x) - __sc_fl_size))
 #  define __sc_chunk_get_ptr(x) ((__s2c_ui8ptr(x)) + __sc_fl_size)
@@ -110,7 +111,9 @@
 #  define __sc_is_inuse(x) (__s2c_chunk(x)->inuse)
 #  define __sc_get_size(x) (__s2c_chunk(x)->size)
 
-#  define __sc_fl_shift(x, s) (__s2c_ui8ptr(x) + __s2c_uiptr(s) + __sc_fl_size)
+#  define __sc_fl_shift(x, s)   (__s2c_ui8ptr(x) + __s2c_uiptr(s) + __sc_fl_size)
+#  define __sc_flbd_shift(x, s) (__s2c_ui8ptr(x) + __sc_wflbd_size(s))
+#  define __sc_shift(x, s)      (__s2c_ui8ptr(x) + __s2c_uiptr(s))
 
 #  define __sc_set(x, s) \
     { \
