@@ -22,10 +22,10 @@
 #include <stdio.h>        /* deprecated in release-version. used only by salloc_trace */
 
 /**
- * \brief Creating a new static buffer to use by \c salloc allocator.
+ * \brief Creating a new static buffer to use by \c salloc -allocators.
  *
  * \param buff a pointer to static buffer.
- * \param buff a \c buff length \ capacity.
+ * \param buff_length a \c buff length \ capacity.
  *
  * \return new \c salloc_t object to work with \c salloc -allocators.
  */
