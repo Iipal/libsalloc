@@ -13,34 +13,74 @@
  */
 
 libsalloc_attr_veccall_const static inline salloc_t
-    salloc_init(register const void * const restrict buff,
-                register const size_t                buff_length) {
+    salloc_new(register const void * const restrict buff,
+               register const size_t                buff_length) {
   const uint8_t * const restrict buff_end = (__s2c_ui8ptr(buff) + (uintptr_t)buff_length);
   const salloc_t out = __s2c_slc_map_buff(out.vec, buff, buff_end, buff, buff_length);
 
   return out;
 }
 
-libsalloc_attr_veccall_const static inline void *
+libsalloc_attr_flatten_veccall static inline void
+    salloc_delete(register salloc_t * const restrict __s) {
+  __s->addr.cursor = __s->addr.start;
+}
+
+libsalloc_attr_veccall static inline void
+    salloc_trace(register salloc_t * const restrict __s) {
+  uint8_t * restrict iptr   = __s->addr.start;
+  uint8_t * restrict cursor = __s->addr.cursor;
+
+  printf("start: %p; end: %p; cursor: %p; capacity: %zu;\n",
+         __s->addr.start,
+         __s->addr.end,
+         __s->addr.cursor,
+         __s->addr.capacity);
+
+  while (iptr && iptr < cursor) {
+    salloc_chunk_t * c = __s2c_chunk(iptr);
+
+    printf("start: %zu-%d-%p\n", c->size, c->inuse, c);
+    printf(" data: (size_t)`%zu` | (char*)`%s`\n",
+           __s2c_size(iptr + __sc_fl_size),
+           (iptr + __sc_fl_size));
+
+    iptr += c->size + __sc_fl_size;
+    c = __s2c_chunk(iptr);
+
+    printf("  end: %zu-%d-%p\n\n", c->size, c->inuse, c);
+    iptr += __sc_fl_size;
+  }
+}
+
+libsalloc_attr_flatten_veccall static inline void *
     __salloc_move_cursor(register salloc_t * const restrict __s,
                          register const size_t              size) {
-  register const size_t  chunk_size = __sc_wflbd_size(size);
-  register salloc_vec4_t mv         = __s2c_slcptr_vec(__s);
+  register const uintptr_t chunk_size = __sc_wflbd_size(size);
+  register salloc_vec4_t   mv         = __s2c_slcptr_vec(__s);
 
 #ifndef SALLOC_UNSAFE_MAPPING
   if (__sc_valid_end(mv, chunk_size)) {
 #endif
     register __s2c_tx(mv) out = __sva_get_cursor(mv);
-    __sc_set(out, size);
+    // __sc_set(out, size);
 
-    // salloc_chunk_t * chunk = (void *)out;
-    // *chunk                 = (salloc_chunk_t){size, 1};
-    // salloc_chunk_t * chunk_end =
-    //     (void *)(__s2c_ui8ptr(out) + __s2c_uiptr(size) + __sc_fl_size);
-    // *chunk_end = (salloc_chunk_t){size, 1};
+    register const salloc_chunk_t chunk_data = {size, 1, 0};
+    register salloc_chunk_t *     chunk      = (void *)out;
+    register salloc_chunk_t *     chunk_end  = __s2c_chunk(__sc_fl_shift(out, size));
 
-    register const __s2c_tx(mv) new_cursor = __sva_move_cursor(out, chunk_size);
-    __s->addr.cursor                       = __s2c_ui8ptr(new_cursor);
+    *chunk     = chunk_data;
+    *chunk_end = chunk_data;
+
+    register const __s2c_tx(mv) new_cursor = __sc_shift(out, chunk_size);
+
+    const salloc_t s = __s2c_slc_map_buff(s.vec,
+                                          __sva_get_start(mv),
+                                          __sva_get_end(mv),
+                                          new_cursor,
+                                          __sva_get_capacity(mv));
+
+    *__s = s;
     return __sc_chunk_get_ptr(out);
 #ifndef SALLOC_UNSAFE_MAPPING
   } else {
@@ -50,14 +90,14 @@ libsalloc_attr_veccall_const static inline void *
 }
 
 libsalloc_attr_veccall_overload static inline void *
-    salloc(register salloc_t * const restrict __s, register const size_t size) {
+    salloc(register salloc_t * const restrict __s, register const size_t __size) {
 #ifndef SALLOC_UNSAFE
-  if (!__s || !__s->addr.capacity) {
+  if (!__size || !__s || !__s->addr.capacity) {
     return nullptr;
   }
 #endif
 
-  register const size_t    aligned_size = __sc_align_size(size);
+  register const size_t    aligned_size = __sc_align_size(__size);
   register void * restrict out          = NULL;
 
   /**
@@ -75,41 +115,29 @@ libsalloc_attr_veccall_overload static inline void *
   return out;
 }
 
-libsalloc_attr_veccall_const static inline void
-    sfree(register salloc_t * const restrict __s) {
-  const salloc_t _m       = *__s;
-  const __s2c_t(*__s) out = __s2c_slc_map_buff(_m.vec,
-                                               __sva_get_start(_m.vec),
-                                               __sva_get_end(_m.vec),
-                                               __sva_get_start(_m.vec),
-                                               __sva_get_capacity(_m.vec));
-
-  *__s = out;
+libsalloc_attr_flatten_veccall_overload static inline void *
+    salloc(register salloc_t * const restrict __s,
+           register const size_t              __size,
+           register const size_t              __nmemb) {
+  return salloc(__s, __nmemb * __size);
 }
 
-#include <stdio.h>
-libsalloc_attr_veccall_const static inline void
-    strace(register salloc_t * const restrict __s) {
-  uint8_t * restrict iptr   = __s->addr.start;
-  uint8_t * restrict cursor = __s->addr.cursor;
+libsalloc_attr_veccall_overload static inline void
+    sfree(register salloc_t * const restrict __s, register void * restrict __ptr) {
+  (void)__s;
+  sfree(__ptr);
+  // TODO: Implement correct freeing of __ptr and optimizing space in __s.
+}
 
-  printf("start: %p; end: %p; cursor: %p; capacity: %zu;\n",
-         __s->addr.start,
-         __s->addr.end,
-         __s->addr.cursor,
-         __s->addr.capacity);
+libsalloc_attr_flatten_veccall_overload static inline void
+    sfree(register void * restrict __ptr) {
+  salloc_chunk_t * restrict chunk                = __sc_ptr_get_chunk(__ptr);
+  register const __s2c_t(chunk->size) chunk_size = chunk->size;
+  salloc_chunk_t * restrict chunk_end   = __s2c_chunk(__sc_shift(__ptr, chunk_size));
+  const salloc_chunk_t      chunk_freed = {chunk_size, __sc_vn_inuse};
 
-  while (iptr && iptr < cursor) {
-    salloc_chunk_t * c = __s2c_chunk(iptr);
-
-    printf("start: %zu-%d-%p\n", c->size, c->inuse, c);
-
-    iptr += c->size + __sc_fl_size;
-    c = __s2c_chunk(iptr);
-
-    printf("  end: %zu-%d-%p\n", c->size, c->inuse, c);
-    iptr += __sc_fl_size;
-  }
+  *chunk     = chunk_freed;
+  *chunk_end = chunk_freed;
 }
 
 /**
