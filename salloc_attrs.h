@@ -143,5 +143,6 @@
 #define libsalloc_attr_veccall_overload libsalloc_attr_veccall libsalloc_attr_overload
 #define libsalloc_attr_flatten_veccall_overload \
   libsalloc_attr_flatten libsalloc_attr_veccall libsalloc_attr_overload
+#define libsalloc_attr_flatten_veccall libsalloc_attr_flatten libsalloc_attr_veccall
 
 #endif /* __SALLOC_ATTRS_H__ */
