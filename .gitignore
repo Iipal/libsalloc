@@ -4,4 +4,4 @@
 **.S
 **.d
 **.DS_Store
-test/
+test/**.S
