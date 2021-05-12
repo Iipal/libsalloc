@@ -15,10 +15,27 @@ int main(void) {
 
   const size_t       chunk_size = 16;
   uint8_t * restrict chunk      = salloc(&slc, chunk_size);
+  uint8_t * restrict chunk2     = salloc(&slc, chunk_size);
+  uint8_t * restrict chunk3     = salloc(&slc, chunk_size);
+  uint8_t * restrict chunk4     = salloc(&slc, chunk_size);
+  uint8_t * restrict chunk5     = salloc(&slc, chunk_size);
 
-  for (uint8_t byte = chunk_size; byte-- > 0;) {
-    byte from[chunk] = 42;
-  }
+  printf("ALL CHUNKS NON-FREED\n");
+  salloc_trace(&slc);
+
+  sfree(&slc, chunk2);
+  sfree(&slc, chunk4);
+  printf("\nAFTER FREED 2 and 4 CHUNKS\n");
+  salloc_trace(&slc);
+
+  sfree(&slc, chunk3);
+  printf("\nAFTER FREED 3 CHUNK\n");
+  salloc_trace(&slc);
+
+  sfree(&slc, chunk);
+  sfree(&slc, chunk5);
+  printf("\nAFTER FREED 1 and 5 CHUNK\n");
+  salloc_trace(&slc);
 
   // uint8_t * restrict chunk1     = salloc(&slc, chunk_size);
   // uint8_t * restrict chunk2     = salloc(&slc, chunk_size);
