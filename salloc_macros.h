@@ -106,26 +106,25 @@
 
 #  define __sc_clear_inuse(x) (__s2c_chunk(x)->inuse = __sc_vn_inuse)
 #  define __sc_clear_size(x)  (__s2c_chunk(x)->size = __sc_vn_inuse)
-#  define __sc_clear(x)       (__s2c_chunk(x) = (salloc_chunk_t){0, 0})
+#  define __sc_clear(x)       (*__s2c_chunk(x) = (salloc_chunk_t){0, 0})
 
 #  define __sc_is_inuse(x) (__s2c_chunk(x)->inuse)
+#  define __sc_is_free(x)  !__sc_is_inuse(x)
 #  define __sc_get_size(x) (__s2c_chunk(x)->size)
 
 #  define __sc_fl_shift(x, s)   (__s2c_ui8ptr(x) + __s2c_uiptr(s) + __sc_fl_size)
 #  define __sc_flbd_shift(x, s) (__s2c_ui8ptr(x) + __sc_wflbd_size(s))
 #  define __sc_shift(x, s)      (__s2c_ui8ptr(x) + __s2c_uiptr(s))
 
-#  define __sc_set(x, s) \
+#  define __sc_set_data(chunk, offset, size, inuse) \
     { \
-      *__s2c_chunk(x)                   = __s2c_chunk_map(s, __sc_v_inuse); \
-      *__s2c_chunk(__sc_fl_shift(x, s)) = __s2c_chunk_map(s, __sc_v_inuse); \
+      *__s2c_chunk(chunk) = __s2c_chunk_map(__s2c_uiptr(size), (uint8_t)(inuse)); \
+      *__s2c_chunk(__sc_fl_shift(chunk, offset)) = \
+          __s2c_chunk_map(__s2c_uiptr(size), (uint8_t)(inuse)); \
     }
 
-#  define __sc_unset(x, s) \
-    { \
-      *__s2c_chunk(x)                   = __s2c_chunk_map(0, __sc_vn_inuse); \
-      *__s2c_chunk(__sc_fl_shift(x, s)) = __s2c_chunk_map(0, __sc_vn_inuse); \
-    }
+#  define __sc_set(x, s)   __sc_set_data(x, s, s, __sc_v_inuse)
+#  define __sc_unset(x, s) __sc_set_data(x, s, 0, __sc_vn_inuse)
 
 #  define __sc_valid_start(v, offset) \
     ((__s2c_ui8ptr(__sva_get_cursor(v)) - __s2c_uiptr(offset)) >= \

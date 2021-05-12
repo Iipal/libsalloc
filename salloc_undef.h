@@ -73,10 +73,12 @@
 #    undef __sc_clear_size
 #    undef __sc_clear
 #    undef __sc_is_inuse
+#    undef __sc_is_free
 #    undef __sc_get_size
 #    undef __sc_fl_shift
 #    undef __sc_flbd_shift
 #    undef __sc_shift
+#    undef __sc_set_data
 #    undef __sc_set
 #    undef __sc_unset
 #    undef __sc_valid_start
