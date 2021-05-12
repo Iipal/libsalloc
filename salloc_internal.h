@@ -57,7 +57,6 @@ libsalloc_attr_flatten_veccall static inline void *
   if (__sc_valid_end(mv, chunk_size)) {
 #endif
     register __s2c_tx(mv) out = __sva_get_cursor(mv);
-    // __sc_set(out, size);
 
     register const salloc_chunk_t chunk_data = {size, 1, 0};
     register salloc_chunk_t *     chunk      = (void *)out;
@@ -66,7 +65,7 @@ libsalloc_attr_flatten_veccall static inline void *
     *chunk     = chunk_data;
     *chunk_end = chunk_data;
 
-    register const __s2c_tx(mv) new_cursor = __sc_shift(out, chunk_size);
+    register const __s2c_tx(mv) new_cursor = (__s2c_tx(mv))(__sc_shift(out, chunk_size));
 
     const salloc_t s = __s2c_slc_map_buff(s.vec,
                                           __sva_get_start(mv),
@@ -125,8 +124,8 @@ libsalloc_attr_veccall_overload static inline void
 
 libsalloc_attr_flatten_veccall_overload static inline void
     sfree(register void * restrict __ptr) {
-  salloc_chunk_t * restrict chunk                = __sc_ptr_get_chunk(__ptr);
-  register const __s2c_t(chunk->size) chunk_size = chunk->size;
+  salloc_chunk_t * restrict chunk       = __sc_ptr_get_chunk(__ptr);
+  register const uintptr_t  chunk_size  = chunk->size;
   salloc_chunk_t * restrict chunk_end   = __s2c_chunk(__sc_shift(__ptr, chunk_size));
   const salloc_chunk_t      chunk_freed = {chunk_size, __sc_vn_inuse};
 
