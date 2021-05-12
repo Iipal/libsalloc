@@ -137,22 +137,23 @@ libsalloc_attr_veccall_overload static inline void
    */
   if (__iptr > __s->addr.start) {
     uint8_t * restrict __baseptr = __iptr;
-    __iptr                       = __baseptr - __sc_flbd_size - __ptr_chunk->size;
+    __iptr = __baseptr - __sc_flbd_size - __sc_get_size(__baseptr - __sc_fl_size);
 
     while (__iptr >= __s->addr.start && __sc_is_free(__iptr)) {
       const uintptr_t __base_size = __sc_get_size(__baseptr);
       const uintptr_t __iptr_size = __sc_get_size(__iptr);
       const uintptr_t __frag_size = __base_size + __sc_flbd_size + __iptr_size;
 
-      salloc_chunk_t * restrict __iptr_end      = __s2c_chunk(__iptr);
-      salloc_chunk_t * restrict __iptr_start    = __s2c_chunk(__iptr - __frag_size);
-      const salloc_chunk_t      __iptr_new_data = {__frag_size, __sc_vn_inuse};
+      salloc_chunk_t * restrict __iptr_start = __s2c_chunk(__iptr);
+      salloc_chunk_t * restrict __iptr_end =
+          __s2c_chunk(__iptr + __frag_size + __sc_fl_size);
+      const salloc_chunk_t __iptr_new_data = {__frag_size, __sc_vn_inuse};
 
-      *__iptr_end   = __iptr_new_data;
       *__iptr_start = __iptr_new_data;
+      *__iptr_end   = __iptr_new_data;
 
       uint8_t * restrict __prev_ptr = __s2c_ui8ptr(__iptr_start) - __sc_fl_size;
-      if (__s->addr.start > __prev_ptr) {
+      if (__s->addr.start <= __prev_ptr) {
         salloc_chunk_t * restrict __prev_chunk = __s2c_chunk(__prev_ptr);
         if (__prev_chunk->inuse) {
           break;
@@ -168,11 +169,9 @@ libsalloc_attr_veccall_overload static inline void
       __baseptr = __iptr;
       __iptr    = __prev_ptr;
     }
-
-    __iptr = __baseptr;
   }
 
-  if (__s->addr.cursor <= __sc_fl_shift(__iptr, __sc_get_size(__iptr) + __sc_fl_size)) {
+  if (__s->addr.cursor <= (__iptr + __sc_get_size(__iptr) + __sc_flbd_size)) {
     __s->addr.cursor = __iptr;
   }
 
