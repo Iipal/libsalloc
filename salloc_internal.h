@@ -31,25 +31,19 @@ libsalloc_attr_veccall static inline void
   uint8_t * restrict iptr   = __s->addr.start;
   uint8_t * restrict cursor = __s->addr.cursor;
 
-  printf("start: %p; end: %p; cursor: %p; capacity: %zu;\n",
+  printf("%-6zu [%p ... %p] at %p\n",
+         __s->addr.capacity,
          __s->addr.start,
          __s->addr.end,
-         __s->addr.cursor,
-         __s->addr.capacity);
+         __s->addr.cursor);
 
   while (iptr && iptr < cursor) {
-    salloc_chunk_t * c = __s2c_chunk(iptr);
+    salloc_chunk_t *   c     = __s2c_chunk(iptr);
+    uint8_t * restrict c_end = iptr + c->size + __sc_fl_size;
 
-    printf("start: %zu-%d-%p\n", c->size, c->inuse, c);
-    printf(" data: (size_t)`%zu` | (char*)`%s`\n",
-           __s2c_size(iptr + __sc_fl_size),
-           (iptr + __sc_fl_size));
+    printf("%d %-4zu [%p ... %p]\n", c->inuse, c->size, c, c_end);
 
-    iptr += c->size + __sc_fl_size;
-    c = __s2c_chunk(iptr);
-
-    printf("  end: %zu-%d-%p\n\n", c->size, c->inuse, c);
-    iptr += __sc_fl_size;
+    iptr = c_end + __sc_fl_size;
   }
 }
 
