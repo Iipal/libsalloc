@@ -29,13 +29,6 @@
 #  define __sva_get_cursor(v)   ((v)[__sva_cursor])
 #  define __sva_get_capacity(v) ((v)[__sva_capacity])
 
-#  define __sva_move_cursor(v, s) (__s2c_ui8ptr(v) + __s2c_uiptr(s))
-
-#  define __sva_map(v) \
-    { __sva_get_start(v), __sva_get_end(v), __sva_get_cursor(v), __sva_get_capacity(v) }
-#  define __sva_map_buff(v, s, e, c, l) \
-    { (__s2c_tx(v))(s), (__s2c_tx(v))(e), (__s2c_tx(v))(c), (__s2c_tx(v))(l) }
-
 #endif
 
 /**
@@ -44,37 +37,18 @@
 #ifndef __is_salloc_casts_defined__
 #  define __is_salloc_casts_defined__ 1
 
-/** __s2c prefix stands as shortcut for __salloc_too_cast **/
+/** __s2c prefix stands as shortcut for __salloc_to_cast **/
 
-#  define __s2c_vptr(x)    ((void *)(x))
-#  define __s2c_ui8ptr(x)  ((uint8_t *)(x))
-#  define __s2c_uiptr(x)   ((uintptr_t)(x))
-#  define __s2c_size(x)    ((size_t)(x))
-#  define __s2c_chunk(x)   ((salloc_chunk_t *)(__s2c_vptr(x)))
-#  define __s2c_vec4(x)    ((salloc_vec4_t)(x))
-#  define __s2c_vec4ptr(x) ((salloc_vec4_t *)(x))
-#  define __s2c_slc(x)     ((salloc_t)(x))
-#  define __s2c_slcptr(x)  ((salloc_t *)(x))
+#  define __s2c_vptr(x)   ((void *)(x))
+#  define __s2c_ui8ptr(x) ((uint8_t *)(x))
+#  define __s2c_uiptr(x)  ((uintptr_t)(x))
 
-#  define __s2c_t(x)    typeof(x)
-#  define __s2c_tx(v)   typeof((v)[0])
-#  define __s2c_slct(x) (salloc_t) __s2c_t(x)
+#  define __s2c_sptr(x)  ((sptr_t)(x))
+#  define __s2c_scptr(x) ((scptr_t)(x))
+#  define __s2c_chunk(x) ((salloc_chunk_t *)(__s2c_vptr(x)))
 
-#  define __s2c_chunk_map(s, u) \
-    (salloc_chunk_t) { (s), (u) }
-#  define __s2c_slc_map_vec(v) __s2c_slc((__s2c_t(v))__sva_map(v))
-#  define __s2c_slc_map_buff(v, s, e, c, l) \
-    __s2c_slc((__s2c_t(v))__sva_map_buff(v, s, e, c, l))
-
-#  define __s2c_slc_vec(s)       __s2c_vec4((s).vec)
-#  define __s2c_slc_vecptr(s)    __s2c_vec4ptr(&((s).vec))
-#  define __s2c_slcptr_vec(s)    __s2c_vec4((s)->vec)
-#  define __s2c_slcptr_vecptr(s) __s2c_vec4ptr(&((s)->vec))
-
-#  define __s2c_vec4_slc(v)       __s2c_slc(v)
-#  define __s2c_vec4_slcptr(v)    __s2c_slcptr(&(v))
-#  define __s2c_vec4ptr_slc(v)    __s2c_slc(*(v))
-#  define __s2c_vec4ptr_slcptr(v) __s2c_slcptr(v)
+#  define __s2c_t(x)  typeof(x)
+#  define __s2c_tx(v) typeof((v)[0])
 
 #endif
 
@@ -86,52 +60,25 @@
 
 /** __sc prefix stands as shortcut for __salloc_chunk **/
 
-#  define __sc_align_default (alignof(void *) * 2)
-#  define __sc_align_bits    (__s2c_uiptr(__sc_align_default - 1ul))
+#  define __sc_align_default __s2c_uiptr(alignof(void *) * 2)
+#  define __sc_align_bits    (__sc_align_default - __s2c_uiptr(1))
 #  define __sc_align(x) \
     (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1UL)) : (x))
-#  define __sc_align_size(x)    (__s2c_size(__sc_align(x)))
-#  define __sc_align_forward(x) (__s2c_uiptr(__sc_align(x)))
+#  define __sc_align_size(x) __s2c_uiptr(__sc_align(x))
 
-#  define __sc_v_inuse  1 // v stands for value
-#  define __sc_vn_inuse 0 // n stands for not
+#  define __sc_fl_size       __s2c_uiptr(sizeof(salloc_chunk_t)) // fl stands for free-list
+#  define __sc_flbd_size     (__sc_fl_size * 2) // bd stands for bi-directional
+#  define __sc_wflbd_size(x) (__s2c_uiptr(x) + __sc_flbd_size) // w stands for with
 
-#  define __sc_fl_size   (__s2c_uiptr(sizeof(salloc_chunk_t))) // fl stands for free-list
-#  define __sc_flbd_size (__s2c_uiptr(__sc_fl_size * 2)) // bd stands for bi-directional
-#  define __sc_wflbd_size(x) \
-    (__s2c_uiptr(__s2c_uiptr(x) + __sc_flbd_size)) // w  stands for with
+#  define __sc_ptr_get_chunk(x) __s2c_chunk(__s2c_sptr(x) - __sc_fl_size)
+#  define __sc_chunk_get_ptr(x) (__s2c_sptr(x) + __sc_fl_size)
 
-#  define __sc_ptr_get_chunk(x) (__s2c_chunk(__s2c_ui8ptr(x) - __sc_fl_size))
-#  define __sc_chunk_get_ptr(x) ((__s2c_ui8ptr(x)) + __sc_fl_size)
+#  define __sc_busy     1
+#  define __sc_not_busy 0
 
-#  define __sc_clear_inuse(x) (__s2c_chunk(x)->inuse = __sc_vn_inuse)
-#  define __sc_clear_size(x)  (__s2c_chunk(x)->size = __sc_vn_inuse)
-#  define __sc_clear(x)       (*__s2c_chunk(x) = (salloc_chunk_t){0, 0})
-
-#  define __sc_is_inuse(x) (__s2c_chunk(x)->inuse)
-#  define __sc_is_free(x)  !__sc_is_inuse(x)
+#  define __sc_get_busy(x) (__s2c_chunk(x)->busy)
 #  define __sc_get_size(x) (__s2c_chunk(x)->size)
-
-#  define __sc_fl_shift(x, s)   (__s2c_ui8ptr(x) + __s2c_uiptr(s) + __sc_fl_size)
-#  define __sc_flbd_shift(x, s) (__s2c_ui8ptr(x) + __sc_wflbd_size(s))
-#  define __sc_shift(x, s)      (__s2c_ui8ptr(x) + __s2c_uiptr(s))
-
-#  define __sc_set_data(chunk, offset, size, inuse) \
-    { \
-      *__s2c_chunk(chunk) = __s2c_chunk_map(__s2c_uiptr(size), (uint8_t)(inuse)); \
-      *__s2c_chunk(__sc_fl_shift(chunk, offset)) = \
-          __s2c_chunk_map(__s2c_uiptr(size), (uint8_t)(inuse)); \
-    }
-
-#  define __sc_set(x, s)   __sc_set_data(x, s, s, __sc_v_inuse)
-#  define __sc_unset(x, s) __sc_set_data(x, s, 0, __sc_vn_inuse)
-
-#  define __sc_valid_start(v, offset) \
-    ((__s2c_ui8ptr(__sva_get_cursor(v)) - __s2c_uiptr(offset)) >= \
-     __s2c_ui8ptr(__sva_get_start(v)))
-#  define __sc_valid_end(v, offset) \
-    ((__s2c_ui8ptr(__sva_get_cursor(v)) + __s2c_uiptr(offset)) <= \
-     __s2c_ui8ptr(__sva_get_end(v)))
+#  define __sc_is_free(x)  !__sc_get_busy(x)
 
 #endif
 

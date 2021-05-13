@@ -1,14 +1,6 @@
 #ifndef __SALLOC_H__
 #define __SALLOC_H__
 
-#if defined(SALLOC_UNSAFE)
-#  undef SALLOC_UNSAFE
-/**
- * Removes some nullptr-checks. Better performance but causes UB.
- */
-#  define SALLOC_UNSAFE 1
-#endif
-
 #if defined(SALLOC_UNSAFE_MAPPING)
 #  undef SALLOC_UNSAFE_MAPPING
 /**
