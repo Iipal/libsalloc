@@ -14,13 +14,9 @@
 
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
-               register const size_t                buff_length) {
-  sptr_t   buff_end = (__s2c_sptr(buff) + (uintptr_t)buff_length);
-  salloc_t out      = (salloc_t){
-      __s2c_sptr(buff),
-      __s2c_sptr(buff_end),
-      __s2c_sptr(buff),
-  };
+               register const __s_size_t            buff_length) {
+  __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)buff_length);
+  salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
   return out;
 }
@@ -34,16 +30,16 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
 #ifndef SALLOC_DEBUG
   (void)__s;
 #else
-  sptr_t       iptr     = __s->start;
-  sptr_t       cursor   = __s->cursor;
-  const size_t capacity = __s->end - __s->start;
+  __s_ptr_t        iptr     = __s->start;
+  __s_ptr_t        cursor   = __s->cursor;
+  const __s_size_t capacity = __s->end - __s->start;
 
   printf("%-6zu [%p ... %p] at %p\n", capacity, __s->start, __s->end, __s->cursor);
 
-  size_t blocks_count = 0;
+  __s_size_t blocks_count = 0;
   while (iptr < cursor) {
-    salloc_chunk_t * c     = __s2c_chunk(iptr);
-    salloc_chunk_t * c_end = __s2c_chunk(iptr + c->size + __sc_fl_size);
+    __s_chunk_t * c     = __s2c_chunk(iptr);
+    __s_chunk_t * c_end = __s2c_chunk(iptr + c->size + __sc_fl_size);
 
     printf("%d %-4zu [%p ... %p] %d %-4zu\n",
            c->busy,
@@ -53,11 +49,11 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
            c_end->busy,
            c_end->size);
 
-    iptr = __s2c_sptr(c_end) + __sc_fl_size;
+    iptr = __s2c_ptr(c_end) + __sc_fl_size;
     ++blocks_count;
   }
 
-  const uintptr_t mapped_memory = __s2c_uiptr(__s->cursor - __s->start);
+  const __s_uintptr_t mapped_memory = __s2c_uiptr(__s->cursor - __s->start);
   printf("total: %zu (%zu)\n",
          mapped_memory - (blocks_count * __sc_flbd_size),
          mapped_memory);
@@ -66,21 +62,21 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
 
 __sattr_flatten_veccall static inline void *
     __salloc_move_cursor(register salloc_t * const restrict __s,
-                         register const uintptr_t           size) {
-  register const uintptr_t chunk_size = __sc_wflbd_size(size);
+                         register const __s_uintptr_t       size) {
+  register const __s_uintptr_t chunk_size = size + __sc_flbd_size;
 
   if ((__s->cursor + chunk_size) <= __s->end) {
-    register sptr_t out = __s->cursor;
+    register __s_ptr_t out = __s->cursor;
 
-    register salloc_chunk_t *     chunk      = __s2c_chunk(out);
-    register salloc_chunk_t *     chunk_end  = __s2c_chunk(out + size + __sc_fl_size);
-    register const salloc_chunk_t chunk_data = {size, 1, 0};
+    register __s_chunk_t *     header  = __s2c_chunk(out);
+    register __s_chunk_t *     footer  = __s2c_chunk(out + size + __sc_fl_size);
+    register const __s_chunk_t payload = {size, 1, 0};
 
-    *chunk     = chunk_data;
-    *chunk_end = chunk_data;
+    *header = payload;
+    *footer = payload;
 
-    register sptr_t new_cursor = out + chunk_size;
-    __s->cursor                = new_cursor;
+    register __s_ptr_t new_cursor = out + chunk_size;
+    __s->cursor                   = new_cursor;
 
     return __sc_chunk_get_ptr(out);
   } else {
@@ -88,51 +84,47 @@ __sattr_flatten_veccall static inline void *
   }
 }
 __sattr_veccall_overload static inline void *
-    salloc(register salloc_t * const restrict __s, register const size_t __size) {
-  register const uintptr_t aligned_size = __sc_align_size(__size);
-  register void * restrict out          = NULL;
+    salloc(register salloc_t * const restrict __s, register const __s_size_t __size) {
+  register const __s_uintptr_t aligned_size = __sc_align_size(__size);
+  register void * restrict     out          = NULL;
 
   /**
-   *  If cursor is not at the start of buffer - trying to find the best available block
-  if (s->s.start != s->s.cursor) {
+   * TODO: Searching for a best available non busy memory chunk for allocation
+   */
 
-  }
-
-  If there is no "best" available - creating new by moving the cursor ptr
-  if (!out) {
-  */
   out = __salloc_move_cursor(__s, aligned_size);
-  // }
 
   return out;
 }
 __sattr_flatten_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s,
-           register const size_t              __size,
-           register const size_t              __nmemb) {
-  return salloc(__s, __nmemb * __size);
+           register const __s_size_t          __size,
+           register const __s_size_t          __nmemb) {
+  const __s_size_t __arr_size = __nmemb * __size;
+  return salloc(__s, __arr_size);
 }
 
-__sattr_flatten_veccall static inline void __sfree_frag(register sptr_t __iptr,
-                                                        register sptr_t __baseptr) {
-  const uintptr_t __base_size = __sc_get_size(__baseptr);
-  const uintptr_t __iptr_size = __sc_get_size(__iptr);
-  const uintptr_t __frag_size = __base_size + __sc_flbd_size + __iptr_size;
+__sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __iptr,
+                                                        register __s_cptr_t __baseptr) {
+  const __s_uintptr_t __base_size = __sc_get_size(__baseptr);
+  const __s_uintptr_t __iptr_size = __sc_get_size(__iptr);
+  const __s_uintptr_t __frag_size = __base_size + __sc_flbd_size + __iptr_size;
 
-  salloc_chunk_t *     __iptr_start    = __s2c_chunk(__iptr);
-  salloc_chunk_t *     __iptr_end      = __s2c_chunk(__iptr + __frag_size + __sc_fl_size);
-  const salloc_chunk_t __iptr_new_data = {__frag_size, __sc_not_busy};
+  __s_chunk_t *     __iptr_header  = __s2c_chunk(__iptr);
+  __s_chunk_t *     __iptr_footer  = __s2c_chunk(__iptr + __frag_size + __sc_fl_size);
+  const __s_chunk_t __iptr_payload = {__frag_size, __sc_not_busy};
 
-  *__iptr_start = __iptr_new_data;
-  *__iptr_end   = __iptr_new_data;
+  *__iptr_header = __iptr_payload;
+  *__iptr_footer = __iptr_payload;
 }
-__sattr_flatten_veccall static inline bool
-    __sfree_shrink_cursor(register salloc_t * const restrict __s, register sptr_t __ptr) {
-  bool is_moved = false;
+__sattr_flatten_veccall static inline __s_uint8_t
+    __sfree_shrink_cursor(register salloc_t * const restrict __s,
+                          register __s_cptr_t                __ptr) {
+  __s_uint8_t is_moved = 0;
 
   if (__s->cursor <= (__ptr + __sc_get_size(__ptr) + __sc_flbd_size)) {
     __s->cursor = __ptr;
-    is_moved    = true;
+    is_moved    = 1;
   }
 
   return is_moved;
@@ -141,30 +133,30 @@ __sattr_veccall_overload static inline void sfree(register salloc_t * const rest
                                                   register void * restrict __ptr) {
   sfree(__ptr);
 
-  const scptr_t __s_start  = __s->start;
-  const scptr_t __s_cursor = __s->cursor;
+  const __s_cptr_t __s_start  = __s->start;
+  const __s_cptr_t __s_cursor = __s->cursor;
 
-  salloc_chunk_t * __ptr_chunk = __sc_ptr_get_chunk(__ptr);
-  sptr_t           __iptr      = __s2c_sptr(__ptr_chunk);
+  __s_chunk_t * __ptr_chunk = __sc_ptr_get_chunk(__ptr);
+  __s_ptr_t     __iptr      = __s2c_ptr(__ptr_chunk);
 
   /**
    * Left-side memory fragmentation.
    * Before:
-   * [inuse] [while_free_chunks] [free_chunk1] [__ptr chunk] [right_side_mem]
+   * [busy] [while_free_chunks] [free_chunk1] [__ptr chunk] [right_side_mem]
    * After:
-   * [inuse] [   new_big_damn_ass_fragmented_memory_chunk  ] [right_side_mem]
+   * [busy] [   new_big_damn_ass_fragmented_memory_chunk  ] [right_side_mem]
    */
   if (__iptr > __s_start) {
-    sptr_t __baseptr = __iptr;
+    __s_ptr_t __baseptr = __iptr;
     __iptr = __baseptr - __sc_flbd_size - __sc_get_size(__baseptr - __sc_fl_size);
 
     while (__iptr >= __s_start && __sc_is_free(__iptr)) {
       __sfree_frag(__iptr, __baseptr);
 
-      sptr_t __prev_ptr = __iptr - __sc_fl_size;
+      __s_ptr_t __prev_ptr = __iptr - __sc_fl_size;
       if (__s_start <= __prev_ptr) {
-        salloc_chunk_t * __prev_chunk = __s2c_chunk(__prev_ptr);
-        __prev_ptr                    = __prev_ptr - __prev_chunk->size - __sc_fl_size;
+        __s_chunk_t * __prev_chunk = __s2c_chunk(__prev_ptr);
+        __prev_ptr                 = __prev_ptr - __prev_chunk->size - __sc_fl_size;
       }
 
       __baseptr = __iptr;
@@ -185,13 +177,13 @@ __sattr_veccall_overload static inline void sfree(register salloc_t * const rest
   /**
    * Right-side memory fragmentation.
    * Before:
-   * [left_side_mem] [ left-side_fragmented_chunk ] [free_chunk1] [inuse]
+   * [left_side_mem] [ left_side_fragmented_chunk ] [free_chunk1] [busy]
    * After:
-   * [left_side_mem] [ new_big_damn_ass_fragmented_memory_chunk ] [inuse]
+   * [left_side_mem] [ new_big_damn_ass_fragmented_memory_chunk ] [busy]
    */
   {
-    sptr_t __baseptr = __iptr;
-    __iptr           = __baseptr + __sc_get_size(__baseptr) + __sc_flbd_size;
+    __s_ptr_t __baseptr = __iptr;
+    __iptr              = __baseptr + __sc_get_size(__baseptr) + __sc_flbd_size;
 
     while (__iptr < __s_cursor && __sc_is_free(__iptr)) {
       __sfree_frag(__baseptr, __iptr);
@@ -204,13 +196,13 @@ __sattr_veccall_overload static inline void sfree(register salloc_t * const rest
 
 __sattr_flatten_veccall_overload static inline void
     sfree(register void * restrict __ptr) {
-  salloc_chunk_t *         chunk       = __sc_ptr_get_chunk(__ptr);
-  register const uintptr_t chunk_size  = chunk->size;
-  salloc_chunk_t *         chunk_end   = __s2c_chunk(__ptr + chunk_size);
-  const salloc_chunk_t     chunk_freed = {chunk_size, __sc_not_busy};
+  __s_chunk_t *                header     = __sc_ptr_get_chunk(__ptr);
+  register const __s_uintptr_t chunk_size = header->size;
+  __s_chunk_t *                footer     = __s2c_chunk(__ptr + chunk_size);
+  const __s_chunk_t            payload    = {chunk_size, __sc_not_busy};
 
-  *chunk     = chunk_freed;
-  *chunk_end = chunk_freed;
+  *header = payload;
+  *footer = payload;
 }
 
 #endif /* __SALLOC_INTERNAL_H__ */

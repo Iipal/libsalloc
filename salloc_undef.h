@@ -12,9 +12,17 @@
 #if defined(SALLOC_MACROS_AFTER_USE)
 #  undef __is_salloc_casts_defined__
 #  undef __is_salloc_chunks_defined__
+#  undef __is_salloc_null_defined__
+#  undef __is_salloc_bool_defined__
 #endif
+
 #if defined(SALLOC_ATTRS_AFTER_USE)
 #  undef __is_salloc_attrs_defined__
+#endif
+
+#ifdef __is_salloc_null_defined__
+#  undef __is_salloc_null_defined__
+#  undef NULL
 #endif
 
 #if __is_salloc_casts_defined__
@@ -31,12 +39,9 @@
 #  undef __is_salloc_chunks_defined__
 #  undef __sc_align_default
 #  undef __sc_align_bits
-#  undef __sc_align
 #  undef __sc_align_size
-#  undef __sc_align_forward
 #  undef __sc_fl_size
 #  undef __sc_flbd_size
-#  undef __sc_wflbd_size
 #  undef __sc_ptr_get_chunk
 #  undef __sc_chunk_get_ptr
 #  undef __sc_busy

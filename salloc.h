@@ -1,7 +1,6 @@
 #ifndef __SALLOC_H__
 #define __SALLOC_H__
 
-#include "salloc_attrs.h"
 #include "salloc_types.h"
 
 #ifdef SALLOC_DEBUG
@@ -20,7 +19,7 @@
  */
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
-               register const size_t                buff_length);
+               register const __s_size_t            buff_length);
 
 /**
  * \brief Deleting created by \c salloc_new object.
@@ -64,7 +63,7 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
  *           - \c __s is NULL;
  */
 __sattr_veccall_overload static inline void *
-    salloc(register salloc_t * const restrict __s, register const size_t __size);
+    salloc(register salloc_t * const restrict __s, register const __s_size_t __size);
 
 /**
  * \brief Allocates new static pointer in \c __s for an array of \c __nmemb elements
@@ -82,8 +81,8 @@ __sattr_veccall_overload static inline void *
  */
 __sattr_flatten_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s,
-           register const size_t              __size,
-           register const size_t              __nmemb);
+           register const __s_size_t          __size,
+           register const __s_size_t          __nmemb);
 
 /**
  * \brief Free a \c __ptr.

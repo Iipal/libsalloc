@@ -18,12 +18,12 @@
 /** __s2c prefix stands as shortcut for __salloc_to_cast **/
 
 #  define __s2c_vptr(x)   ((void *)(x))
-#  define __s2c_ui8ptr(x) ((uint8_t *)(x))
-#  define __s2c_uiptr(x)  ((uintptr_t)(x))
+#  define __s2c_ui8ptr(x) ((__s_uint8_t *)(x))
+#  define __s2c_uiptr(x)  ((__s_uintptr_t)(x))
 
-#  define __s2c_sptr(x)  ((sptr_t)(x))
-#  define __s2c_scptr(x) ((scptr_t)(x))
-#  define __s2c_chunk(x) ((salloc_chunk_t *)(__s2c_vptr(x)))
+#  define __s2c_ptr(x)   ((__s_ptr_t)(x))
+#  define __s2c_cptr(x)  ((__s_cptr_t)(x))
+#  define __s2c_chunk(x) ((__s_chunk_t *)(__s2c_vptr(x)))
 
 #endif
 
@@ -37,16 +37,14 @@
 
 #  define __sc_align_default __s2c_uiptr(sizeof(void *) * 2)
 #  define __sc_align_bits    (__sc_align_default - __s2c_uiptr(1))
-#  define __sc_align(x) \
-    (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1UL)) : (x))
-#  define __sc_align_size(x) __s2c_uiptr(__sc_align(x))
+#  define __sc_align_size(x) \
+    __s2c_uiptr(((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1UL)) : (x))
 
-#  define __sc_fl_size       __s2c_uiptr(sizeof(salloc_chunk_t)) // fl stands for free-list
-#  define __sc_flbd_size     (__sc_fl_size * 2) // bd stands for bi-directional
-#  define __sc_wflbd_size(x) (__s2c_uiptr(x) + __sc_flbd_size) // w stands for with
+#  define __sc_fl_size   __s2c_uiptr(sizeof(__s_chunk_t)) // fl stands for free-list
+#  define __sc_flbd_size (__sc_fl_size * 2)               // bd stands for bi-directional
 
-#  define __sc_ptr_get_chunk(x) __s2c_chunk(__s2c_sptr(x) - __sc_fl_size)
-#  define __sc_chunk_get_ptr(x) (__s2c_sptr(x) + __sc_fl_size)
+#  define __sc_ptr_get_chunk(x) __s2c_chunk(__s2c_ptr(x) - __sc_fl_size)
+#  define __sc_chunk_get_ptr(x) (__s2c_ptr(x) + __sc_fl_size)
 
 #  define __sc_busy     1
 #  define __sc_not_busy 0
