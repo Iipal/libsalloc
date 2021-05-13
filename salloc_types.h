@@ -23,8 +23,7 @@
 #  define alignof(x) (__alignof__(x))
 #endif
 
-typedef uintptr_t __attribute__((__aligned__, __ext_vector_type__(4))) v4pu_t;
-typedef v4pu_t salloc_vec4_t;
+typedef uintptr_t __attribute__((__aligned__, __ext_vector_type__(4))) salloc_vec4_t;
 
 typedef uint8_t * restrict       sptr_t;
 typedef uint8_t * restrict const scptr_t;
@@ -41,23 +40,6 @@ typedef struct s_salloc_mem_t {
   sptr_t end;
   sptr_t cursor;
   size_t capacity;
-} libsalloc_attr_alignof(salloc_vec4_t) salloc_addr_t;
-
-typedef union u_salloc {
-  salloc_addr_t addr;
-  salloc_vec4_t vec;
-} salloc_t libsalloc_attr_transparent;
-
-typedef struct _s_salloc {
-  sptr_t    buff;
-  size_t    buff_length;
-  uintptr_t previous_offset;
-  uintptr_t current_offset;
-} libsalloc_attr_alignof(salloc_vec4_t) _salloc_t;
-
-typedef union {
-  _salloc_t     data;
-  salloc_vec4_t vector;
-} salloc_allocator_t libsalloc_attr_transparent;
+} libsalloc_attr_alignof(salloc_vec4_t) salloc_t;
 
 #endif /* __SALLOC_TYPES_H__ */

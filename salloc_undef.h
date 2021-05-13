@@ -9,22 +9,6 @@
 
 #if !defined(SALLOC_MACROS_AFTER_USE)
 
-#  if __is_salloc_vec_accessors_defined__
-#    undef __is_salloc_vec_accessors_defined__
-#    undef __sva_alloc_buff
-#    undef __sva_alloc_buff_len
-#    undef __sva_alloc_prev_offset
-#    undef __sva_alloc_curr_offset
-#    undef __sva_start
-#    undef __sva_end
-#    undef __sva_cursor
-#    undef __sva_capacity
-#    undef __sva_get_start
-#    undef __sva_get_end
-#    undef __sva_get_cursor
-#    undef __sva_get_capacity
-#  endif
-
 #  if __is_salloc_casts_defined__
 #    undef __is_salloc_casts_defined__
 #    undef __s2c_vptr

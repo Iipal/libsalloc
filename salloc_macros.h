@@ -9,28 +9,6 @@
 #  include "salloc_types.h"
 #endif
 
-#ifndef __is_salloc_vec_accessors_defined__
-#  define __is_salloc_vec_accessors_defined__ 1
-
-/** __sva prefix stands as shortcut for __salloc_vector_accessor **/
-
-#  define __sva_alloc_buff        (0)
-#  define __sva_alloc_buff_len    (1)
-#  define __sva_alloc_prev_offset (2)
-#  define __sva_alloc_curr_offset (3)
-
-#  define __sva_start    0
-#  define __sva_end      1
-#  define __sva_cursor   2
-#  define __sva_capacity 3
-
-#  define __sva_get_start(v)    ((v)[__sva_start])
-#  define __sva_get_end(v)      ((v)[__sva_end])
-#  define __sva_get_cursor(v)   ((v)[__sva_cursor])
-#  define __sva_get_capacity(v) ((v)[__sva_capacity])
-
-#endif
-
 /**
  * Most convenient type conversions
  */
