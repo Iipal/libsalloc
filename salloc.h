@@ -178,6 +178,9 @@ typedef struct __s_salloc_t {
 
 /** __sc prefix stands as shortcut for __salloc_chunk **/
 
+#  define __sc_init(size, busy) \
+    { 0 /* __alignment_dummy */, (size), (busy) }
+
 #  define __sc_align_default __s2c_uiptr(sizeof(void *) * 2)
 #  define __sc_align_bits    (__sc_align_default - __s2c_uiptr(1))
 #  define __sc_align_size(x) \
@@ -372,7 +375,7 @@ __sattr_flatten_veccall static inline void *
 
     register __s_chunk_t *     header  = __s2c_chunk(out);
     register __s_chunk_t *     footer  = __s2c_chunk(out + size + __sc_fl_size);
-    register const __s_chunk_t payload = {size, 1, 0};
+    register const __s_chunk_t payload = __sc_init(size, __sc_busy);
 
     *header = payload;
     *footer = payload;
@@ -414,7 +417,7 @@ __sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __ip
 
   __s_chunk_t *     __iptr_header  = __s2c_chunk(__iptr);
   __s_chunk_t *     __iptr_footer  = __s2c_chunk(__iptr + __frag_size + __sc_fl_size);
-  const __s_chunk_t __iptr_payload = {__frag_size, __sc_not_busy};
+  const __s_chunk_t __iptr_payload = __sc_init(__frag_size, __sc_not_busy);
 
   *__iptr_header = __iptr_payload;
   *__iptr_footer = __iptr_payload;
@@ -501,7 +504,7 @@ __sattr_flatten_veccall_overload static inline void
   __s_chunk_t *       header     = __sc_ptr_get_chunk(__ptr);
   const __s_uintptr_t chunk_size = header->size;
   __s_chunk_t *       footer     = __s2c_chunk(__ptr + chunk_size);
-  const __s_chunk_t   payload    = {chunk_size, __sc_not_busy};
+  const __s_chunk_t   payload    = __sc_init(chunk_size, __sc_not_busy);
 
   *header = payload;
   *footer = payload;
@@ -547,6 +550,7 @@ __sattr_flatten_veccall_overload static inline void
 
 #if __is_salloc_chunks_defined__
 #  undef __is_salloc_chunks_defined__
+#  undef __sc_init
 #  undef __sc_align_default
 #  undef __sc_align_bits
 #  undef __sc_align_size
