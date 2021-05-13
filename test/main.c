@@ -10,11 +10,11 @@ int main(void) {
   salloc_t                  slc          = salloc_new(buffer, buffer_size);
 
   const __s_size_t chunk_size = 16;
-  __s_ptr_t        chunk1     = salloc(&slc, chunk_size + 666);
-  __s_ptr_t        chunk2     = salloc(&slc, chunk_size + 999);
-  __s_ptr_t        chunk3     = salloc(&slc, chunk_size * 5);
-  __s_ptr_t        chunk4     = salloc(&slc, chunk_size * 10);
-  __s_ptr_t        chunk5     = salloc(&slc, chunk_size * 16);
+  __s_ptr_t        chunk1     = salloc(&slc, chunk_size);
+  __s_ptr_t        chunk2     = salloc(&slc, chunk_size);
+  __s_ptr_t        chunk3     = salloc(&slc, chunk_size);
+  __s_ptr_t        chunk4     = salloc(&slc, chunk_size);
+  __s_ptr_t        chunk5     = salloc(&slc, chunk_size);
 
   printf("ALL CHUNKS NON-FREED\n");
   salloc_trace(&slc);
