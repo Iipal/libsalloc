@@ -1,17 +1,14 @@
 #ifndef __SALLOC_H__
 #define __SALLOC_H__
 
-#if defined(SALLOC_UNSAFE_MAPPING)
-#  undef SALLOC_UNSAFE_MAPPING
-/**
- * Removes some mapping checks, like check of start\end of available memory
- */
-#  define SALLOC_UNSAFE_MAPPING 1
-#endif
-
 #include "salloc_attrs.h"
-#include "salloc_types.h" /* may be removed in future */
-#include <stdio.h>        /* deprecated in release-version. used only by salloc_trace */
+#include "salloc_types.h"
+
+#ifdef SALLOC_DEBUG
+/* deprecated in release-version. used only by salloc_trace in debug-purposes */
+#  warning "use of SALLOC_DEBUG is not allowed for non-debug purposes. please remove it."
+#  include <stdio.h>
+#endif
 
 /**
  * \brief Creating a new static buffer to use by \c salloc -allocators.
@@ -21,7 +18,7 @@
  *
  * \return new \c salloc_t object to work with \c salloc -allocators.
  */
-libsalloc_attr_veccall_const static inline salloc_t
+__sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
                register const size_t                buff_length);
 
@@ -41,7 +38,7 @@ libsalloc_attr_veccall_const static inline salloc_t
  *
  * \param __s a pointer to \c salloc_t object.
  */
-libsalloc_attr_flatten_veccall static inline void
+__sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s);
 
 /**
@@ -51,8 +48,7 @@ libsalloc_attr_flatten_veccall static inline void
  *
  * \param __s a pointer to \c salloc_t object.
  */
-libsalloc_attr_veccall static inline void
-    salloc_trace(register salloc_t * const restrict __s);
+__sattr_veccall static inline void salloc_trace(register salloc_t * const restrict __s);
 
 /**
  * \brief Allocates new static pointer in \c __s with at least \c __size bytes, and
@@ -67,7 +63,7 @@ libsalloc_attr_veccall static inline void
  *           - \c __size is equals to 0;
  *           - \c __s is NULL;
  */
-libsalloc_attr_veccall_overload static inline void *
+__sattr_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s, register const size_t __size);
 
 /**
@@ -84,7 +80,7 @@ libsalloc_attr_veccall_overload static inline void *
  *           - ( \c __nmemb * \c __size ) is equals to 0;
  *           - \c __s is NULL;
  */
-libsalloc_attr_flatten_veccall_overload static inline void *
+__sattr_flatten_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s,
            register const size_t              __size,
            register const size_t              __nmemb);
@@ -101,8 +97,8 @@ libsalloc_attr_flatten_veccall_overload static inline void *
  * \param __s a pointer to \c salloc_t object.
  * \param __ptr a pointer to be freed.
  */
-libsalloc_attr_veccall_overload static inline void
-    sfree(register salloc_t * const restrict __s, register void * restrict __ptr);
+__sattr_veccall_overload static inline void sfree(register salloc_t * const restrict __s,
+                                                  register void * restrict __ptr);
 
 /**
  * \brief Un-safe free of \c __ptr.
@@ -116,8 +112,7 @@ libsalloc_attr_veccall_overload static inline void
  *
  * \param __ptr a pointer to be freed.
  */
-libsalloc_attr_flatten_veccall_overload static inline void
-    sfree(register void * restrict __ptr);
+__sattr_flatten_veccall_overload static inline void sfree(register void * restrict __ptr);
 
 #include "salloc_internal.h"
 #include "salloc_undef.h"

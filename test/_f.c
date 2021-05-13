@@ -1,7 +1,5 @@
-// #define SALLOC_UNSAFE_MAPPING
-// #define SALLOC_MACROS_AFTER_USE
-
-#define _GNU_SOURCE
+#define SALLOC_MACROS_AFTER_USE
+#define SALLOC_DEBUG
 
 #include "../salloc.h"
 #include <stdio.h>

@@ -25,9 +25,6 @@
 #  define __s2c_scptr(x) ((scptr_t)(x))
 #  define __s2c_chunk(x) ((salloc_chunk_t *)(__s2c_vptr(x)))
 
-#  define __s2c_t(x)  typeof(x)
-#  define __s2c_tx(v) typeof((v)[0])
-
 #endif
 
 /**
@@ -38,7 +35,7 @@
 
 /** __sc prefix stands as shortcut for __salloc_chunk **/
 
-#  define __sc_align_default __s2c_uiptr(alignof(void *) * 2)
+#  define __sc_align_default __s2c_uiptr(sizeof(void *) * 2)
 #  define __sc_align_bits    (__sc_align_default - __s2c_uiptr(1))
 #  define __sc_align(x) \
     (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1UL)) : (x))
