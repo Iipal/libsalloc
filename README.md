@@ -13,7 +13,7 @@ Creating the simplest header-only library with malloc-like behavior for mapping\
 
 Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf) document, which explains everything about most common malloc-like allocator implementations. Details:
 
-- Implemented using **implicit bidirectional free-list** or **Bidirectional Coalescing: Boundary Tags**. In code, each **Boundary Tag** is described in the `__s_chunk_t` structure, and macroses with prefix `__sc_` are created only for internal use purposes.
+- Implemented using **implicit bidirectional free-list** or **Bidirectional Coalescing: Boundary Tags**. In code, each **Boundary Tag** is described in the `__s_chunk_t` structure, and macroses with prefix `__sc_` as well as functions prefixed with `__salloc_` or `__sfree_` are created only for internal-use purposes.
 - Each allocation takes additional 16bytes in the static buffer for **Boundary Tags** info.
 - Each allocation aligned by 16bytes by default. (24 will align to 32)
 - Each allocation will use **Best Fit** method to find a free block. Best Fit: Search the list, choose the best free block: fits, with the fewest bytes leftover.
