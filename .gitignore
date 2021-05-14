@@ -5,3 +5,6 @@
 **.d
 **.DS_Store
 test/**.S
+**/build
+**/debug
+**/sanitize

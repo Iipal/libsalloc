@@ -6,7 +6,7 @@ CC=clang
 
 CFLAGS="-Wall -Wextra -Werror -Wunused -Wno-#warnings -std=c2x"
 CFLAGS_OPTIMIZE="-march=native -mtune=native -Ofast -pipe -flto -fpic"
-CFLAGS_DEBUG="-g -O1"
+CFLAGS_DEBUG="-g"
 CFLAGS_ASM="-march=native -mtune=native -Ofast -pipe -S -masm=intel"
 CFLAGS_ASM_DEBUG="-g -S -masm=intel"
 CFLAGS_SANITIZE="-g -fsanitize=address -static-libsan"
