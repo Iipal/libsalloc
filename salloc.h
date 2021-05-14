@@ -117,10 +117,10 @@ typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64  */
 typedef unsigned int __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
 #endif
 
-typedef __SIZE_TYPE__                __s_size_t;  /* salloc analog of size_t */
-typedef unsigned char                __s_uint8_t; /* salloc analog of uint8_t  */
-typedef __s_uint8_t * restrict       __s_ptr_t;   /* alias for most common pointer type */
-typedef __s_uint8_t * const restrict __s_cptr_t;  /* __s_ptr_t but const */
+typedef __SIZE_TYPE__ __s_size_t;                /* salloc analog of size_t */
+typedef unsigned char __s_uint8_t;               /* salloc analog of uint8_t  */
+typedef __s_uint8_t * restrict __s_ptr_t;        /* alias for most common pointer type */
+typedef __s_uint8_t * const restrict __s_cptr_t; /* __s_ptr_t but const */
 
 /**
  * Memory chunk mapping with bidirectional implicit free list.
@@ -217,7 +217,7 @@ typedef struct __s_salloc_t {
  */
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
-               register const __s_size_t            buff_length);
+               register const __s_size_t buff_length);
 
 /**
  * \brief Deleting created by \c salloc_new object.
@@ -279,8 +279,8 @@ __sattr_veccall_overload static inline void *
  */
 __sattr_flatten_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s,
-           register const __s_size_t          __size,
-           register const __s_size_t          __nmemb);
+           register const __s_size_t __size,
+           register const __s_size_t __nmemb);
 
 /**
  * \brief Free a \c __ptr.
@@ -319,7 +319,7 @@ __sattr_flatten_veccall_overload static inline void sfree(register void * restri
 
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
-               register const __s_size_t            buff_length) {
+               register const __s_size_t buff_length) {
   __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)buff_length);
   salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
@@ -367,7 +367,7 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
 
 __sattr_flatten_veccall static inline void *
     __salloc_move_cursor(register salloc_t * const restrict __s,
-                         register const __s_uintptr_t       size) {
+                         register const __s_uintptr_t size) {
   register const __s_uintptr_t chunk_size = size + __sc_flbd_size;
 
   if ((__s->cursor + chunk_size) <= __s->end) {
@@ -391,7 +391,7 @@ __sattr_flatten_veccall static inline void *
 __sattr_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s, register const __s_size_t __size) {
   register const __s_uintptr_t aligned_size = __sc_align_size(__size);
-  register void * restrict     out          = NULL;
+  register void * restrict out              = NULL;
 
   /**
    * TODO: Searching for a best available non busy memory chunk for allocation
@@ -403,8 +403,8 @@ __sattr_veccall_overload static inline void *
 }
 __sattr_flatten_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s,
-           register const __s_size_t          __size,
-           register const __s_size_t          __nmemb) {
+           register const __s_size_t __size,
+           register const __s_size_t __nmemb) {
   const __s_size_t __arr_size = __nmemb * __size;
   return salloc(__s, __arr_size);
 }
@@ -424,7 +424,7 @@ __sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __ip
 }
 __sattr_flatten_veccall static inline __s_uint8_t
     __sfree_shrink_cursor(register salloc_t * const restrict __s,
-                          register __s_cptr_t                __ptr) {
+                          register __s_cptr_t __ptr) {
   __s_uint8_t is_moved = 0;
 
   if (__s->cursor <= (__ptr + __sc_get_size(__ptr) + __sc_flbd_size)) {

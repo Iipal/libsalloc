@@ -2,7 +2,7 @@
   "Language": "Cpp",
   "SortIncludes": true,
   "IncludeBlocks": "Merge",
-  "SortUsingDeclarations": "true",
+  "SortUsingDeclarations": true,
   "BasedOnStyle": "LLVM",
   "PointerAlignment": "Middle",
   "NamespaceIndentation": "All",
@@ -16,5 +16,6 @@
   "AlignConsecutiveDeclarations": true,
   "AlignConsecutiveAssignments": true,
   "AlignConsecutiveMacros": true,
+  "AlignConsecutiveBitFields": true,
   "IndentPPDirectives": "AfterHash",
 }
