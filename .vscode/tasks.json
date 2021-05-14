@@ -7,7 +7,7 @@
     {
       "label": "current_ebota",
       "type": "shell",
-      "command": "./test/compile.sh asm test/_f.c test/_f",
+      "command": "./test/compile.sh asm test/main.c test/main",
       "problemMatcher": ["$gcc"],
       "presentation": {
         "echo": true,
