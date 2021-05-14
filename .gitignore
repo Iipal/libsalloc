@@ -4,6 +4,7 @@
 **.S
 **.d
 **.DS_Store
+**.log
 test/**.S
 **/build
 **/debug
