@@ -122,8 +122,13 @@
 #  define NULL ((void *)0)
 #endif
 
-#define __s_nonnull  _Nonnull
-#define __s_nullable _Nullable
+#ifdef SALLOC_NULLABILITY
+#  define __s_nonnull  _Nonnull
+#  define __s_nullable _Nullable
+#else
+#  define __s_nonnull
+#  define __s_nullable
+#endif
 
 #if defined(__x86_64__) && !defined(__ILP32__)
 typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64  */
@@ -270,7 +275,7 @@ __sattr_veccall static inline void
 #endif
 
 /**
- * \brief Returns size of static buffer.
+ * \brief Returns size\capacity of static buffer.
  *
  * \param __s a pointer to \c salloc_t object.
  *
