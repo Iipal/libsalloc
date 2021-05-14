@@ -388,16 +388,84 @@ __sattr_flatten_veccall static inline void *
     return NULL;
   }
 }
+__sattr_flatten_veccall static inline void
+    __salloc_frag_free_space(const __s_cptr_t    __bestptr,
+                             const __s_uintptr_t __bestsize,
+                             const __s_uintptr_t __require_size) {
+  register __s_chunk_t * restrict __fragptr_header;
+  register __s_chunk_t * restrict __fragptr_footer;
+  register __s_chunk_t __fragptr_payload;
+
+  if ((__bestsize - __sc_flbd_size) > __require_size) {
+    const __s_uintptr_t __fragsize = __bestsize - __sc_flbd_size - __require_size;
+    __s_uint8_t *       __fragptr  = __bestptr + __require_size + __sc_flbd_size;
+
+    __fragptr_header  = __s2c_chunk(__fragptr);
+    __fragptr_footer  = __s2c_chunk(__fragptr + __fragsize + __sc_fl_size);
+    __fragptr_payload = (__s_chunk_t)__sc_init(__fragsize, __sc_not_busy);
+  } else {
+    /**
+     * may seem useless at first sight, because for the \c __bestptr I already set it's
+     * size in \c __salloc_find_best_chunk, but there I actually set only
+     * \c __require_size , but \c __bestsize can be grater than that value only for a few
+     * bytes, and less then \c (__bestsize-__sc_flbd_size)
+     */
+    __fragptr_header  = __s2c_chunk(__bestptr);
+    __fragptr_footer  = __s2c_chunk(__bestptr + __bestsize + __sc_fl_size);
+    __fragptr_payload = (__s_chunk_t)__sc_init(__bestsize, __sc_busy);
+  }
+
+  *__fragptr_header = __fragptr_payload;
+  *__fragptr_footer = __fragptr_payload;
+}
+__sattr_flatten_veccall static inline void *
+    __salloc_find_best_chunk(register salloc_t * const restrict __s,
+                             register const __s_size_t __require_size) {
+  const __s_cptr_t __s_cursor = __s->cursor;
+
+  __s_ptr_t     __iptr     = __s->start;
+  __s_ptr_t     __bestptr  = 0;
+  __s_uintptr_t __isize    = 0;
+  __s_uintptr_t __bestsize = (__s->end - __s->start);
+
+  while (__iptr < __s_cursor) {
+    const __s_uint8_t is_chunk_free = __sc_is_free(__iptr);
+
+    __isize = __sc_get_size(__iptr);
+    if (!!is_chunk_free && __isize >= __require_size && __isize <= __bestsize) {
+      __bestsize = __isize;
+      __bestptr  = __iptr;
+    }
+    __iptr += __isize + __sc_flbd_size;
+  }
+
+  if (!!__bestptr) {
+    __s_chunk_t * __bestptr_header = __s2c_chunk(__bestptr);
+    __s_chunk_t * __bestptr_footer =
+        __s2c_chunk(__bestptr + __require_size + __sc_fl_size);
+    const __s_chunk_t __bestptr_payload = __sc_init(__require_size, __sc_busy);
+
+    *__bestptr_header = __bestptr_payload;
+    *__bestptr_footer = __bestptr_payload;
+
+    if (__bestsize > __require_size) {
+      __salloc_frag_free_space(__bestptr, __bestsize, __require_size);
+    }
+
+    return __sc_chunk_get_ptr(__bestptr);
+  }
+
+  return NULL;
+}
 __sattr_veccall_overload static inline void *
     salloc(register salloc_t * const restrict __s, register const __s_size_t __size) {
   register const __s_uintptr_t aligned_size = __sc_align_size(__size);
   register void * restrict out              = NULL;
 
-  /**
-   * TODO: Searching for a best available non busy memory chunk for allocation
-   */
-
-  out = __salloc_move_cursor(__s, aligned_size);
+  out = __salloc_find_best_chunk(__s, aligned_size);
+  if (!out) {
+    out = __salloc_move_cursor(__s, aligned_size);
+  }
 
   return out;
 }
@@ -413,11 +481,11 @@ __sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __ip
                                                         register __s_cptr_t __baseptr) {
   const __s_uintptr_t __base_size = __sc_get_size(__baseptr);
   const __s_uintptr_t __iptr_size = __sc_get_size(__iptr);
-  const __s_uintptr_t __frag_size = __base_size + __sc_flbd_size + __iptr_size;
+  const __s_uintptr_t __fragsize  = __base_size + __sc_flbd_size + __iptr_size;
 
   __s_chunk_t *     __iptr_header  = __s2c_chunk(__iptr);
-  __s_chunk_t *     __iptr_footer  = __s2c_chunk(__iptr + __frag_size + __sc_fl_size);
-  const __s_chunk_t __iptr_payload = __sc_init(__frag_size, __sc_not_busy);
+  __s_chunk_t *     __iptr_footer  = __s2c_chunk(__iptr + __fragsize + __sc_fl_size);
+  const __s_chunk_t __iptr_payload = __sc_init(__fragsize, __sc_not_busy);
 
   *__iptr_header = __iptr_payload;
   *__iptr_footer = __iptr_payload;

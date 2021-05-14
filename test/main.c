@@ -28,6 +28,17 @@ int main(void) {
   sfree(&slc, chunk3);
   salloc_trace(&slc);
 
+  for (__s_size_t i = 0; 6 > i; ++i) {
+    const __s_size_t new_chunk_size = chunk_size * (i + 1);
+    printf("\nCREATING NEW CHUNK WITH %zu bytes\n", new_chunk_size);
+    __s_ptr_t new_chunk = salloc(&slc, new_chunk_size);
+    salloc_trace(&slc);
+
+    printf("\nFREEING NEW CHUNK\n");
+    sfree(&slc, new_chunk);
+    salloc_trace(&slc);
+  }
+
   printf("\nAFTER FREED 5\n");
   sfree(&slc, chunk5);
   salloc_trace(&slc);
@@ -35,19 +46,6 @@ int main(void) {
   printf("\nAFTER FREED 1\n");
   sfree(&slc, chunk1);
   salloc_trace(&slc);
-
-  // for (__s_size_t i = 0; 5 > i; ++i) {
-  //   const __s_size_t       chunk_size = 16 * (i + 1);
-  //   __s_ptr_t chunk      = salloc(&slc, chunk_size);
-
-  //   for (__s_uint8_t byte = chunk_size; byte-- > 0;) {
-  //     byte from[chunk] = 42;
-  //   }
-
-  //   sfree(chunk);
-  // }
-
-  // salloc_trace(&slc);
 
   salloc_delete(&slc);
 }
