@@ -4,7 +4,7 @@
       "name": "Linux",
       "includePath": ["${workspaceFolder}/**"],
       "defines": [],
-      "compilerPath": "/usr/bin/clang-12",
+      "compilerPath": "/usr/bin/clang",
       "compilerArgs": ["-std=c2x", "-march=native", "-Wall", "-Werror", "-Wextra"],
       "intelliSenseMode": "linux-clang-x64",
       "cStandard": "c17",

@@ -2,13 +2,7 @@
 
 BUILD_TYPE=$1
 
-CC=clang-12
-
-command -v $CC > /dev/null
-if [ $? -eq 1 ]
-then
-    CC=clang
-fi
+CC=clang
 
 CFLAGS="-Wall -Wextra -Werror -Wunused -Wno-#warnings -std=c2x"
 CFLAGS_OPTIMIZE="-march=native -mtune=native -Ofast -pipe -flto -fpic"
