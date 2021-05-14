@@ -113,8 +113,10 @@
 
 #if defined(__x86_64__) && !defined(__ILP32__)
 typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64  */
+typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64  */
 #else
 typedef unsigned int __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
+typedef int          __s_ssize_t;   /* salloc analog of ssize_t; x64  */
 #endif
 
 typedef __SIZE_TYPE__ __s_size_t;                /* salloc analog of size_t */
@@ -134,7 +136,7 @@ typedef __s_uint8_t * const restrict __s_cptr_t; /* __s_ptr_t but const */
  * [ __s_chunk_t with ->size == 48 and by default ->busy == 1] **footer**
  */
 typedef struct __s_salloc_chunk {
-  __s_uint8_t __alignment_dummy : 3 __sattr_munused; /* as it is */
+  __s_uint8_t __alignment : 3 __sattr_munused; /* as it is */
 
   __s_uintptr_t size : 60; /* size of current memory chunk */
   __s_uint8_t   busy : 1;  /* indicates is current memory chunk was freed or not */
@@ -160,13 +162,10 @@ typedef struct __s_salloc_t {
 
 /** __s2c prefix stands as shortcut for __salloc_to_cast **/
 
-#  define __s2c_vptr(x)   ((void *)(x))
-#  define __s2c_ui8ptr(x) ((__s_uint8_t *)(x))
-#  define __s2c_uiptr(x)  ((__s_uintptr_t)(x))
+#  define __s2c_uiptr(x) ((__s_uintptr_t)(x))
 
 #  define __s2c_ptr(x)   ((__s_ptr_t)(x))
-#  define __s2c_cptr(x)  ((__s_cptr_t)(x))
-#  define __s2c_chunk(x) ((__s_chunk_t *)(__s2c_vptr(x)))
+#  define __s2c_chunk(x) ((__s_chunk_t *)(void *)(x))
 
 #endif
 
@@ -179,12 +178,12 @@ typedef struct __s_salloc_t {
 /** __sc prefix stands as shortcut for __salloc_chunk **/
 
 #  define __sc_init(size, busy) \
-    { 0 /* __alignment_dummy */, (size), (busy) }
+    { 0 /* __alignment */, (size), (busy) }
 
 #  define __sc_align_default __s2c_uiptr(sizeof(void *) * 2)
-#  define __sc_align_bits    (__sc_align_default - __s2c_uiptr(1))
+#  define __sc_align_bits    (__sc_align_default - 1)
 #  define __sc_align_size(x) \
-    __s2c_uiptr(((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1UL)) : (x))
+    (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1)) : (x))
 
 #  define __sc_fl_size   __s2c_uiptr(sizeof(__s_chunk_t)) // fl stands for free-list
 #  define __sc_flbd_size (__sc_fl_size * 2)               // bd stands for bi-directional
@@ -250,6 +249,47 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
 #else
 #  define salloc_trace(__s) ((void)(__s))
 #endif
+
+/**
+ * \brief Returns size of unused memory in static buffer.
+ *
+ * \param __s a pointer to \c salloc_t object.
+ *
+ * \return size of available\unused memory
+ */
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s);
+/**
+ * \brief Checks is in \c __s is enough space to allocate new pointer with at least
+ * \c __size bytes.
+ *
+ * \param __s a pointer to \c salloc_t object.
+ * \param __size required size of s-allocation.
+ *
+ * \return 0 - if new s-allocation will take all the unused memory. Negative - the size of
+ * how much the pointer with at least \c __size will exceed the unused memory. Positive -
+ * available space after s-allocation of the new pointer with at least \c __size bytes.
+ */
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s,
+                  register const __s_size_t __size);
+/**
+ * \brief Checks is in \c __s is enough space to allocate of \c __nmemb new pointers with
+ * at least \c __size bytes each.
+ *
+ * \param __s a pointer to \c salloc_t object.
+ * \param __size required size of s-allocation for each pointer.
+ * \param __nmemb N-pointers to s-allocate.
+ *
+ * \return 0 - if new \c __nmemb s-allocations with at least \c __size each will take all
+ * the unused memory. Negative - the size of how much new \c __nmemb pointers with at
+ * least \c __size each will exceed the unused memory. Positive - available space after
+ * s-allocation of \c __nmemb new pointers with at least \c __size bytes each.
+ */
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s,
+                  register const __s_size_t __size,
+                  register const __s_size_t __nmemb);
 
 /**
  * \brief Allocates new static pointer in \c __s with at least \c __size bytes, and
@@ -321,6 +361,11 @@ __sattr_flatten_veccall_overload static inline void sfree(register void * restri
  * --------------------
  */
 
+/**
+ * ||||||||||||||||||||||
+ * SALLOC_NEW DEFINITIONS
+ * ||||||||||||||||||||||
+ */
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict buff,
                register const __s_size_t buff_length) {
@@ -330,12 +375,24 @@ __sattr_veccall_const static inline salloc_t
   return out;
 }
 
+/**
+ * |||||||||||||||||||||||||
+ * SALLOC_DELETE DEFINITIONS
+ * |||||||||||||||||||||||||
+ */
+
 __sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s) {
   __s->cursor = __s->start;
 }
 
 #ifdef SALLOC_DEBUG
+/**
+ * ||||||||||||||||||||||||
+ * SALLOC_TRACE DEFINITIONS
+ * ||||||||||||||||||||||||
+ */
+
 __sattr_veccall static inline void salloc_trace(register salloc_t * const restrict __s) {
   __s_ptr_t        iptr     = __s->start;
   __s_ptr_t        cursor   = __s->cursor;
@@ -366,7 +423,45 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
          mapped_memory);
 }
 #endif
+
+/**
+ * |||||||||||||||||||||||||
+ * SALLOC_UNUSED DEFINITIONS
+ * |||||||||||||||||||||||||
+ */
+
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s) {
+  const __s_ssize_t unused = __s->end - __s->cursor;
+
+  return unused;
 }
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s,
+                  register const __s_size_t __size) {
+  const __s_size_t  aligned = __sc_align_size(__size);
+  const __s_ssize_t unused  = salloc_unused(__s);
+  const __s_ssize_t out     = unused - aligned - __sc_flbd_size;
+
+  return out;
+}
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s,
+                  register const __s_size_t __size,
+                  register const __s_size_t __nmemb) {
+  const __s_size_t  aligned      = __sc_align_size(__size);
+  const __s_size_t  require_size = __nmemb * aligned + __nmemb * __sc_flbd_size;
+  const __s_ssize_t unused       = salloc_unused(__s);
+  const __s_ssize_t out          = unused - require_size;
+
+  return out;
+}
+
+/**
+ * ||||||||||||||||||
+ * SALLOC DEFINITIONS
+ * ||||||||||||||||||
+ */
 
 __sattr_flatten_veccall static inline void *
     __salloc_move_cursor(register salloc_t * const restrict __s,
@@ -465,7 +560,9 @@ __sattr_veccall_overload static inline void *
   register const __s_uintptr_t aligned_size = __sc_align_size(__size);
   register void * restrict out              = NULL;
 
-  out = __salloc_find_best_chunk(__s, aligned_size);
+  if (__s->start < __s->cursor) {
+    out = __salloc_find_best_chunk(__s, aligned_size);
+  }
   if (!out) {
     out = __salloc_move_cursor(__s, aligned_size);
   }
@@ -479,6 +576,12 @@ __sattr_flatten_veccall_overload static inline void *
   const __s_size_t __arr_size = __nmemb * __size;
   return salloc(__s, __arr_size);
 }
+
+/**
+ * |||||||||||||||||
+ * SFREE DEFINITIONS
+ * |||||||||||||||||
+ */
 
 __sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __iptr,
                                                         register __s_cptr_t __baseptr) {
@@ -609,13 +712,27 @@ __sattr_flatten_veccall_overload static inline void
 #  undef NULL
 #endif
 
+#if __is_salloc_attrs_defined__
+#  undef __is_salloc_attrs_defined__
+#  undef __is_cpp_attr__
+#  undef __sattr_veccall
+#  undef __sattr_const
+#  undef __sattr_overload
+#  undef __sattr_flatten
+#  undef __sattr_munused
+#  undef __sattr_packed
+#  undef __sattr_deprecated
+#  undef __sattr_veccall_const
+#  undef __sattr_veccall_const_overload
+#  undef __sattr_veccall_overload
+#  undef __sattr_flatten_veccall_overload
+#  undef __sattr_flatten_veccall
+#endif
+
 #if __is_salloc_casts_defined__
 #  undef __is_salloc_casts_defined__
-#  undef __s2c_vptr
-#  undef __s2c_ui8ptr
 #  undef __s2c_uiptr
 #  undef __s2c_sptr
-#  undef __s2c_scptr
 #  undef __s2c_chunk
 #endif
 
@@ -634,23 +751,6 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __sc_get_busy
 #  undef __sc_get_size
 #  undef __sc_is_free
-#endif
-
-#if __is_salloc_attrs_defined__
-#  undef __is_salloc_attrs_defined__
-#  undef __is_cpp_attr__
-#  undef __sattr_veccall
-#  undef __sattr_const
-#  undef __sattr_overload
-#  undef __sattr_flatten
-#  undef __sattr_munused
-#  undef __sattr_packed
-#  undef __sattr_deprecated
-#  undef __sattr_veccall_const
-#  undef __sattr_veccall_const_overload
-#  undef __sattr_veccall_overload
-#  undef __sattr_flatten_veccall_overload
-#  undef __sattr_flatten_veccall
 #endif
 
 #endif /* __SALLOC_H__ */
