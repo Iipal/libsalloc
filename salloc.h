@@ -238,6 +238,7 @@ __sattr_veccall_const static inline salloc_t
 __sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s);
 
+#ifdef SALLOC_DEBUG
 /**
  * \brief Just prints \ trace all the pointers stored in \c salloc_t object.
  *
@@ -246,6 +247,9 @@ __sattr_flatten_veccall static inline void
  * \param __s a pointer to \c salloc_t object.
  */
 __sattr_veccall static inline void salloc_trace(register salloc_t * const restrict __s);
+#else
+#  define salloc_trace(__s) ((void)(__s))
+#endif
 
 /**
  * \brief Allocates new static pointer in \c __s with at least \c __size bytes, and
@@ -331,10 +335,8 @@ __sattr_flatten_veccall static inline void
   __s->cursor = __s->start;
 }
 
+#ifdef SALLOC_DEBUG
 __sattr_veccall static inline void salloc_trace(register salloc_t * const restrict __s) {
-#ifndef SALLOC_DEBUG
-  (void)__s;
-#else
   __s_ptr_t        iptr     = __s->start;
   __s_ptr_t        cursor   = __s->cursor;
   const __s_size_t capacity = __s->end - __s->start;
@@ -362,6 +364,7 @@ __sattr_veccall static inline void salloc_trace(register salloc_t * const restri
   printf("total: %zu (%zu)\n",
          mapped_memory - (blocks_count * __sc_flbd_size),
          mapped_memory);
+}
 #endif
 }
 
