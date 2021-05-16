@@ -283,7 +283,7 @@ __sattr_veccall_const static inline salloc_t
  *
  * \param __s a pointer to \c salloc_t object.
  */
-__sattr_flatten_veccall static inline void
+__sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
 #ifdef SALLOC_DEBUG
@@ -294,10 +294,8 @@ __sattr_flatten_veccall static inline void
  *
  * \param __s a pointer to \c salloc_t object.
  */
-__sattr_veccall static inline void
+__sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s);
-#else
-#  define salloc_trace(__s) ((void)(__s))
 #endif
 
 /**
@@ -307,7 +305,7 @@ __sattr_veccall static inline void
  *
  * \return capacity of static buffer mapped in \c __s .
  */
-__sattr_flatten_veccall static inline __s_size_t
+__sattr_flatten_veccall_overload static inline __s_size_t
     salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
 
 /**
@@ -317,7 +315,7 @@ __sattr_flatten_veccall static inline __s_size_t
  *
  * \return 0 - no used memory. Otherwise - size of used memory.
  */
-__sattr_flatten_veccall static inline __s_size_t
+__sattr_flatten_veccall_overload static inline __s_size_t
     salloc_used(register salloc_t * const restrict __s_nonnull __s);
 
 /**
@@ -456,7 +454,7 @@ __sattr_veccall_const static inline salloc_t
  * |||||||||||||||||||||||||
  */
 
-__sattr_flatten_veccall static inline void
+__sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s) {
   __s->cursor = __s->start;
 }
@@ -468,7 +466,7 @@ __sattr_flatten_veccall static inline void
  * ||||||||||||||||||||||||
  */
 
-__sattr_veccall static inline void
+__sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s) {
   __s_ptr_t iptr   = __s->start;
   __s_ptr_t cursor = __s->cursor;
@@ -520,7 +518,7 @@ __sattr_veccall static inline void
  * |||||||||||||||||||||||||||
  */
 
-__sattr_flatten_veccall static inline __s_size_t
+__sattr_flatten_veccall_overload static inline __s_size_t
     salloc_capacity(register salloc_t * const restrict __s_nonnull __s) {
   const __s_size_t capacity = __s->end - __s->start;
 
@@ -533,7 +531,7 @@ __sattr_flatten_veccall static inline __s_size_t
  * |||||||||||||||||||||||
  */
 
-__sattr_flatten_veccall static inline __s_size_t
+__sattr_flatten_veccall_overload static inline __s_size_t
     salloc_used(register salloc_t * const restrict __s_nonnull __s) {
   const __s_size_t used = __s->cursor - __s->start;
 
@@ -806,6 +804,117 @@ __sattr_flatten_veccall_overload static inline void
   *header = payload;
   *footer = payload;
 }
+
+/**
+ * -----------------------------
+ * SALLOC_GDI_BUFFER DEFINITIONS
+ * -----------------------------
+ */
+
+#define SALLOC_GDI_BUFFER
+#ifdef SALLOC_GDI_BUFFER
+#  undef SALLOC_GDI_BUFFER
+
+/**
+ * GDI - Global Data Interace
+ * In this case it's global interface to access global static buffer without manually
+ * crating \c salloc_t object. Size of this buffer can be specified with
+ * \c SALLOC_GDI_BUFFER_SIZE .
+ */
+#  define SALLOC_GDI_BUFFER 1
+
+#  ifndef SALLOC_GDI_BUFFER_SIZE
+
+/**
+ * Size of global static buffer
+ */
+#    define SALLOC_GDI_BUFFER_SIZE 4096
+#  endif
+
+/**
+ * Below just an interfaces\accessors to all the standard s-allocators via gdi buffer,
+ * so there is no additional prototypes or any other comments.
+ */
+
+__sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_gdi_buffer(void) {
+  static __s_uint8_t __buffer[SALLOC_GDI_BUFFER_SIZE];
+  static salloc_t    __slc = {__buffer, __buffer + SALLOC_GDI_BUFFER_SIZE, __buffer};
+
+  return &__slc;
+}
+
+__sattr_flatten_veccall_overload static inline void salloc_delete(void) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+
+  salloc_delete(__gdi_slc);
+}
+
+#  ifdef SALLOC_DEBUG
+__sattr_flatten_veccall_overload static inline void salloc_trace(void) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_trace(__gdi_slc);
+}
+#  endif
+
+__sattr_flatten_veccall_overload static inline __s_size_t salloc_capacity(void) {
+  return SALLOC_GDI_BUFFER_SIZE;
+}
+
+__sattr_flatten_veccall_overload static inline __s_size_t salloc_used(void) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  __s_size_t used               = salloc_used(__gdi_slc);
+
+  return used;
+}
+
+__sattr_flatten_veccall_overload static inline __s_ssize_t salloc_unused(void) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  __s_ssize_t unused            = salloc_unused(__gdi_slc);
+
+  return unused;
+}
+
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register const __s_size_t __size) __sattr_diagnose_align(__size) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  __s_ssize_t unused            = salloc_unused(__gdi_slc, __size);
+
+  return unused;
+}
+
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register const __s_size_t __size, register const __s_size_t __nmemb)
+        __sattr_diagnose_align(__size) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  __s_ssize_t unused            = salloc_unused(__gdi_slc, __size, __nmemb);
+
+  return unused;
+}
+
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc(register const __s_size_t __size) __sattr_diagnose_align(__size) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  void * __ptr                  = salloc(__gdi_slc, __size);
+
+  return __ptr;
+}
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc(register const __s_size_t __size, register const __s_size_t __nmemb)
+        __sattr_diagnose_align(__size) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  void * __ptr                  = salloc(__gdi_slc, __size, __nmemb);
+
+  return __ptr;
+}
+
+__sattr_flatten_veccall_overload static inline void
+    sfree_gdi(register void * restrict const __gdi_ptr) {
+  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+
+  sfree(__gdi_slc, __gdi_ptr);
+}
+
+#endif
 
 /**
  * ---------------
