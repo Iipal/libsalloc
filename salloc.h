@@ -162,10 +162,9 @@ typedef struct __s_salloc_chunk {
 } __sattr_packed __s_chunk_t;
 
 typedef struct __s_salloc_t {
-  __s_ptr_t _Nonnull start;  /* start of available space in static buffer */
-  __s_ptr_t _Nonnull end;    /* end of available space in static buffer */
-  __s_ptr_t _Nonnull cursor; /* cursor to the max address of current static buffer in use
-                              */
+  __s_ptr_t __s_nonnull start;  /* start of available space in static buffer */
+  __s_ptr_t __s_nonnull end;    /* end of available space in static buffer */
+  __s_ptr_t __s_nonnull cursor; /* current max of use memory in static buffer */
 } salloc_t;
 
 /**
