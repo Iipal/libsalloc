@@ -183,6 +183,14 @@ typedef struct __s_salloc_t {
 #define SALLOC_MIN_BUFFER_SIZE ((sizeof(__s_chunk_t) * 2) + SALLOC_MIN_ALLOC_SIZE)
 
 /**
+ * Fast shorthand for creating a buffer and \c salloc_t object for s-allocators.
+ */
+#define salloc_new_fast(name, capacity) \
+  static __s_uint8_t name##_buff[(capacity)]; \
+  const __s_size_t   name##_buff_capacity = (capacity); \
+  salloc_t           name##_slc           = salloc_new(name##_buff, name##_buff_capacity);
+
+/**
  * ------------------
  * MACROS DEFINITIONS
  * ------------------
