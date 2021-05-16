@@ -1,6 +1,7 @@
 #ifndef __SALLOC_H__
 #define __SALLOC_H__
 
+#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgcc-compat"
 
 #ifdef SALLOC_DEBUG
@@ -29,9 +30,6 @@
 #else
 #  define __sattr_diagnose_if(x, msg, type)
 #endif
-
-#define __sattr_diagnose_align(x) \
-  __sattr_diagnose_if((__s_uintptr_t)(x) % 16, #x " must be aligned by 16", "error")
 
 #if __is_cpp_attr__
 #  define __sattr_veccall [[clang::vectorcall]]
@@ -168,10 +166,41 @@ typedef struct __s_salloc_t {
 } salloc_t;
 
 /**
+ * -------------------------
+ * PUBLIC MACROS DEFINITIONS
+ * -------------------------
+ */
+
+/**
+ * \brief Minium allocation size in static buffer because it's also default alignment.
+ */
+#define SALLOC_MIN_ALLOC_SIZE (sizeof(void *) * 2)
+
+/**
+ * \brief Minium required memory in static buffer for at least 1 pointer with minimum
+ * \c SALLOC_MIN_ALLOC_SIZE bytes
+ */
+#define SALLOC_MIN_BUFFER_SIZE ((sizeof(__s_chunk_t) * 2) + SALLOC_MIN_ALLOC_SIZE)
+
+/**
  * ------------------
  * MACROS DEFINITIONS
  * ------------------
  */
+
+/**
+ * Error text may be invalid depends on system due to problems with ## tokens parser
+ */
+#define __sattr_diagnose_buff_size(x) \
+  __sattr_diagnose_if(x < SALLOC_MIN_BUFFER_SIZE, #x " less than 32 (on x86_64)", "error")
+
+/**
+ * Error text may be invalid depends on system due to problems with ## tokens parser
+ */
+#define __sattr_diagnose_align(x) \
+  __sattr_diagnose_if(x % SALLOC_MIN_ALLOC_SIZE || x < SALLOC_MIN_ALLOC_SIZE, \
+                      #x " less than or is not aligned by 16 (on x86_64)", \
+                      "error")
 
 /**
  * Most convenient type conversions
@@ -199,7 +228,7 @@ typedef struct __s_salloc_t {
 #  define __sc_init(size, busy) \
     { 0 /* __alignment */, (size), (busy) }
 
-#  define __sc_align_default __s2c_uiptr(sizeof(void *) * 2)
+#  define __sc_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
 #  define __sc_align_bits    (__sc_align_default - 1)
 #  define __sc_align_size(x) \
     (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1)) : (x))
@@ -226,19 +255,17 @@ typedef struct __s_salloc_t {
  */
 
 /**
- * \brief Creating a new static buffer to use by \c salloc -allocators.
- *
- * \warning It's not possible to calculate at compile-time but every \c buff pointer MUST
- * BE aligned by 16
+ * \brief Creating a new static buffer to use by \c salloc -allocators with at most
+ * \c capacity bytes.
  *
  * \param buff a pointer to static buffer.
- * \param buff_length a \c buff length \ capacity.
+ * \param capacity a \c buff length \ size \ capacity.
  *
  * \return new \c salloc_t object to work with \c salloc -allocators.
  */
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t buff_length) __sattr_diagnose_align(buff_length);
+               register const __s_size_t capacity) __sattr_diagnose_buff_size(capacity);
 
 /**
  * \brief Deleting created by \c salloc_new object.
@@ -416,8 +443,8 @@ __sattr_flatten_veccall_overload static inline void
 
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        buff_length) {
-  __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)buff_length);
+               register const __s_size_t                        capacity) {
+  __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)capacity);
   salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
   return out;
@@ -488,9 +515,9 @@ __sattr_veccall static inline void
 #endif
 
 /**
- * ||||||||||||||||||||||||||
- * SALLOC_CAPCITY DEFINITIONS
- * ||||||||||||||||||||||||||
+ * |||||||||||||||||||||||||||
+ * SALLOC_CAPACITY DEFINITIONS
+ * |||||||||||||||||||||||||||
  */
 
 __sattr_flatten_veccall static inline __s_size_t
@@ -788,7 +815,8 @@ __sattr_flatten_veccall_overload static inline void
 
 #if defined(SALLOC_MACROS_AFTER_USE)
 #  warning "salloc macroses still defined."
-#elif defined(SALLOC_ATTRS_AFTER_USE)
+#endif
+#if defined(SALLOC_ATTRS_AFTER_USE)
 #  warning "salloc attributes still defined."
 #endif
 
@@ -816,6 +844,7 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __is_cpp_attr__
 #  undef __sattr_diagnose_if
 #  undef __sattr_diagnose_align
+#  undef __sattr_diagnose_buff_size
 #  undef __sattr_veccall
 #  undef __sattr_const
 #  undef __sattr_overload
@@ -853,5 +882,7 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __sc_get_size
 #  undef __sc_is_free
 #endif
+
+#pragma clang diagnostic pop
 
 #endif /* __SALLOC_H__ */
