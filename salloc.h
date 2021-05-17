@@ -129,40 +129,50 @@
 #endif
 
 #if defined(__x86_64__) && !defined(__ILP32__)
-typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64  */
-typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64  */
+typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64 */
+typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64   */
 #else
 typedef unsigned int __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
-typedef int          __s_ssize_t;   /* salloc analog of ssize_t; x64  */
+typedef int          __s_ssize_t;   /* salloc analog of ssize_t; x32   */
 #endif
 
-typedef __SIZE_TYPE__ __s_size_t;                /* salloc analog of size_t */
-typedef unsigned char __s_uint8_t;               /* salloc analog of uint8_t  */
-typedef __s_uint8_t * restrict __s_ptr_t;        /* alias for most common pointer type */
-typedef __s_uint8_t * const restrict __s_cptr_t; /* __s_ptr_t but const */
+typedef __SIZE_TYPE__                      __s_size_t;  /* salloc analog of size_t  */
+typedef unsigned char                      __s_uint8_t; /* salloc analog of uint8_t */
+typedef __s_uint8_t * restrict __s_nonnull __s_ptr_t;   /* most common pointer type */
+typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but const */
 
 /**
- * Memory chunk mapping with bidirectional implicit free list.
+ * Memory mapping with bidirectional implicit free list or Boundary Tags.
  *
  * Example:
  * By calling salloc with \c size of 48 bytes it actually allocating \c size +
- * \c (sizeof(__s_chunk_t)*2) bytes for memory mapping:
+ * \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
  *
- * [ __s_chunk_t with ->size == 48 and by default ->busy == 1] **header**
+ * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **header**
  * [                 your 48 bytes of memory                 ] **payload**
- * [ __s_chunk_t with ->size == 48 and by default ->busy == 1] **footer**
+ * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **footer**
  */
-typedef struct __s_salloc_chunk {
+typedef struct __s_salloc_tag {
   __s_uint8_t __alignment : 3 __sattr_munused; /* as it is */
 
-  __s_uintptr_t size : 60; /* size of current memory chunk */
-  __s_uint8_t   busy : 1;  /* indicates is current memory chunk was freed or not */
-} __sattr_packed __s_chunk_t;
+  __s_uintptr_t size : 60; /* size of current pointer */
+  __s_uint8_t   busy : 1;  /* indicates is current pointer was freed or not */
+} __sattr_packed __s_tag_t;
 
-typedef struct __s_salloc_t {
-  __s_ptr_t __s_nonnull start;  /* start of available space in static buffer */
-  __s_ptr_t __s_nonnull end;    /* end of available space in static buffer */
-  __s_ptr_t __s_nonnull cursor; /* current max of use memory in static buffer */
+/**
+ * ------------------------
+ * PUBLIC TYPES DEFINITIONS
+ * ------------------------
+ */
+
+/**
+ * Object to which mapped the static buffer via \c salloc_new, and which tracking all the
+ * available memory to use in current static buffer.
+ */
+typedef struct s_salloc_t {
+  __s_ptr_t start;  /* start of available space in static buffer */
+  __s_ptr_t end;    /* end of available space in static buffer */
+  __s_ptr_t cursor; /* current max of use memory in static buffer */
 } salloc_t;
 
 /**
@@ -177,10 +187,10 @@ typedef struct __s_salloc_t {
 #define SALLOC_MIN_ALLOC_SIZE (sizeof(void *) * 2)
 
 /**
- * \brief Minium required memory in static buffer for at least 1 pointer with minimum
- * \c SALLOC_MIN_ALLOC_SIZE bytes
+ * \brief Minimum required memory in static buffer for at least 1 pointer with at least
+ * \c SALLOC_MIN_ALLOC_SIZE bytes size.
  */
-#define SALLOC_MIN_BUFFER_SIZE ((sizeof(__s_chunk_t) * 2) + SALLOC_MIN_ALLOC_SIZE)
+#define SALLOC_MIN_BUFFER_SIZE ((sizeof(__s_tag_t) * 2) + SALLOC_MIN_ALLOC_SIZE)
 
 /**
  * Fast shorthand for creating a buffer and \c salloc_t object for s-allocators.
@@ -198,12 +208,15 @@ typedef struct __s_salloc_t {
 
 /**
  * Error text may be invalid depends on system due to problems with ## tokens parser
+ * Refer to \c SALLOC_MIN_BUFFER_SIZE for valid minimum salloc buffer size.
  */
 #define __sattr_diagnose_buff_size(x) \
   __sattr_diagnose_if(x < SALLOC_MIN_BUFFER_SIZE, #x " less than 32 (on x86_64)", "error")
 
 /**
- * Error text may be invalid depends on system due to problems with ## tokens parser
+ * Error text may be invalid depends on system due to problems with ## tokens parser.
+ * Refer to \c SALLOC_MIN_ALLOC_SIZE for valid minimum s-allocation \ alignment value in
+ * your system.
  */
 #define __sattr_diagnose_align(x) \
   __sattr_diagnose_if(x % SALLOC_MIN_ALLOC_SIZE || x < SALLOC_MIN_ALLOC_SIZE, \
@@ -219,40 +232,39 @@ typedef struct __s_salloc_t {
 /** __s2c prefix stands as shortcut for __salloc_to_cast **/
 
 #  define __s2c_uiptr(x) ((__s_uintptr_t)(x))
-
 #  define __s2c_ptr(x)   ((__s_ptr_t)(x))
-#  define __s2c_chunk(x) ((__s_chunk_t *)(void *)(x))
+#  define __s2c_tag(x)   ((__s_tag_t *)(void *)(x))
 
 #endif
 
 /**
- * For work with memory chunks as with bi-directional implicit free-list
+ * For work with memory boundary tags or as with bi-directional implicit free-list
  */
-#ifndef __is_salloc_chunks_defined__
-#  define __is_salloc_chunks_defined__ 1
+#ifndef __is_salloc_tags_defined__
+#  define __is_salloc_tags_defined__ 1
 
-/** __sc prefix stands as shortcut for __salloc_chunk **/
+/** __st prefix stands as shortcut for __salloc_tag **/
 
-#  define __sc_init(size, busy) \
+#  define __st_init(size, busy) \
     { 0 /* __alignment */, (size), (busy) }
 
-#  define __sc_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
-#  define __sc_align_bits    (__sc_align_default - 1)
-#  define __sc_align_size(x) \
-    (((x) % __sc_align_default) ? ((x) + ((~(x)&__sc_align_bits) + 1)) : (x))
+#  define __st_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
+#  define __st_align_bits    (__st_align_default - 1)
+#  define __st_align_size(x) \
+    (((x) % __st_align_default) ? ((x) + ((~(x)&__st_align_bits) + 1)) : (x))
 
-#  define __sc_fl_size   __s2c_uiptr(sizeof(__s_chunk_t)) // fl stands for free-list
-#  define __sc_flbd_size (__sc_fl_size * 2)               // bd stands for bi-directional
+#  define __st_size    __s2c_uiptr(sizeof(__s_tag_t))
+#  define __st_bd_size (__st_size * 2) // bd stands for bi-directional
 
-#  define __sc_ptr_get_chunk(x) __s2c_chunk(__s2c_ptr(x) - __sc_fl_size)
-#  define __sc_chunk_get_ptr(x) (__s2c_ptr(x) + __sc_fl_size)
+#  define __st_ptr_get_tag(x) __s2c_tag(__s2c_ptr(x) - __st_size)
+#  define __st_tag_get_ptr(x) (__s2c_ptr(x) + __st_size)
 
-#  define __sc_busy     1
-#  define __sc_not_busy 0
+#  define __st_busy     1
+#  define __st_not_busy 0
 
-#  define __sc_get_busy(x) (__s2c_chunk(x)->busy)
-#  define __sc_get_size(x) (__s2c_chunk(x)->size)
-#  define __sc_is_free(x)  !__sc_get_busy(x)
+#  define __st_get_busy(x) (__s2c_tag(x)->busy)
+#  define __st_get_size(x) (__s2c_tag(x)->size)
+#  define __st_is_free(x)  !__st_get_busy(x)
 
 #endif
 
@@ -483,18 +495,18 @@ __sattr_veccall_overload static inline void
 
   __s_size_t blocks_count = 0;
   while (iptr < cursor) {
-    __s_chunk_t * c     = __s2c_chunk(iptr);
-    __s_chunk_t * c_end = __s2c_chunk(iptr + c->size + __sc_fl_size);
+    __s_tag_t * iptr_header = __s2c_tag(iptr);
+    __s_tag_t * iptr_footer = __s2c_tag(iptr + iptr_header->size + __st_size);
 
     printf("%d %-4zu [%p ... %p] %d %zu\n",
-           c->busy,
-           c->size,
-           c,
-           c_end,
-           c_end->busy,
-           c_end->size);
+           iptr_header->busy,
+           iptr_header->size,
+           iptr_header,
+           iptr_footer,
+           iptr_footer->busy,
+           iptr_footer->size);
 
-    iptr = __s2c_ptr(c_end) + __sc_fl_size;
+    iptr = __s2c_ptr(iptr_footer) + __st_size;
     ++blocks_count;
   }
 
@@ -509,7 +521,7 @@ __sattr_veccall_overload static inline void
   printf("  used [%p ... %p] %zu (%zu)\n",
          __s->start,
          cursor,
-         used - (blocks_count * __sc_flbd_size),
+         used - (blocks_count * __st_bd_size),
          used);
   printf("unused [%p ... %p] %zu\n"
          "capacity: %zu;\n",
@@ -561,9 +573,9 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
                   register const __s_size_t                      __size) {
-  const __s_size_t  aligned = __sc_align_size(__size);
+  const __s_size_t  aligned = __st_align_size(__size);
   const __s_ssize_t unused  = salloc_unused(__s);
-  const __s_ssize_t out     = unused - aligned - __sc_flbd_size;
+  const __s_ssize_t out     = unused - aligned - __st_bd_size;
 
   return out;
 }
@@ -571,8 +583,8 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
                   register const __s_size_t                      __size,
                   register const __s_size_t                      __nmemb) {
-  const __s_size_t  aligned      = __sc_align_size(__size);
-  const __s_size_t  require_size = __nmemb * aligned + __nmemb * __sc_flbd_size;
+  const __s_size_t  aligned      = __st_align_size(__size);
+  const __s_size_t  require_size = __nmemb * aligned + __nmemb * __st_bd_size;
   const __s_ssize_t unused       = salloc_unused(__s);
   const __s_ssize_t out          = unused - require_size;
 
@@ -585,54 +597,61 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
  * ||||||||||||||||||
  */
 
+/**
+ * Extending the used memory cursor if it's possible and if in \c __s is no best-fit
+ * memory chunk for new s-allocation.
+ */
 __sattr_flatten_veccall static inline void * __s_nullable
-    __salloc_move_cursor(register salloc_t * const restrict __s_nonnull __s,
-                         register const __s_uintptr_t                   size) {
-  register const __s_uintptr_t chunk_size = size + __sc_flbd_size;
+    __salloc_extend_cursor(register salloc_t * const restrict __s_nonnull __s,
+                           register const __s_uintptr_t                   size) {
+  register const __s_uintptr_t alloc_size = size + __st_bd_size;
 
-  if ((__s->cursor + chunk_size) <= __s->end) {
+  if ((__s->cursor + alloc_size) <= __s->end) {
     register __s_ptr_t out = __s->cursor;
 
-    register __s_chunk_t *     header  = __s2c_chunk(out);
-    register __s_chunk_t *     footer  = __s2c_chunk(out + size + __sc_fl_size);
-    register const __s_chunk_t payload = __sc_init(size, __sc_busy);
+    register __s_tag_t *     header  = __s2c_tag(out);
+    register __s_tag_t *     footer  = __s2c_tag(out + size + __st_size);
+    register const __s_tag_t payload = __st_init(size, __st_busy);
 
     *header = payload;
     *footer = payload;
 
-    register __s_ptr_t new_cursor = out + chunk_size;
+    register __s_ptr_t new_cursor = out + alloc_size;
     __s->cursor                   = new_cursor;
 
-    return __sc_chunk_get_ptr(out);
+    return __st_tag_get_ptr(out);
   } else {
     return NULL;
   }
 }
+/**
+ * Fragmentation memory space if best-fit memory chunk was found.
+ */
 __sattr_flatten_veccall static inline void
     __salloc_frag_free_space(const __s_cptr_t __s_nonnull __bestptr,
                              const __s_uintptr_t          __bestsize,
                              const __s_uintptr_t          __require_size) {
-  register __s_chunk_t * restrict __fragptr_header;
-  register __s_chunk_t * restrict __fragptr_footer;
-  register __s_chunk_t __fragptr_payload;
+  register __s_tag_t * restrict __fragptr_header;
+  register __s_tag_t * restrict __fragptr_footer;
+  register __s_tag_t __fragptr_payload;
 
-  if ((__bestsize - __sc_flbd_size) > __require_size) {
-    const __s_uintptr_t __fragsize = __bestsize - __sc_flbd_size - __require_size;
-    __s_uint8_t *       __fragptr  = __bestptr + __require_size + __sc_flbd_size;
+  if ((__bestsize - __st_bd_size) > __require_size) {
+    const __s_uintptr_t __fragsize = __bestsize - __st_bd_size - __require_size;
+    __s_uint8_t *       __fragptr  = __bestptr + __require_size + __st_bd_size;
 
-    __fragptr_header  = __s2c_chunk(__fragptr);
-    __fragptr_footer  = __s2c_chunk(__fragptr + __fragsize + __sc_fl_size);
-    __fragptr_payload = (__s_chunk_t)__sc_init(__fragsize, __sc_not_busy);
+    __fragptr_header  = __s2c_tag(__fragptr);
+    __fragptr_footer  = __s2c_tag(__fragptr + __fragsize + __st_size);
+    __fragptr_payload = (__s_tag_t)__st_init(__fragsize, __st_not_busy);
   } else {
     /**
      * may seem useless at first sight, because for the \c __bestptr I already set it's
      * size in \c __salloc_find_best_chunk, but there I actually set only
      * \c __require_size , but \c __bestsize can be grater than that value only for a few
-     * bytes, and less then \c (__bestsize-__sc_flbd_size)
+     * bytes, and less then \c (__bestsize-__st_bd_size)
      */
-    __fragptr_header  = __s2c_chunk(__bestptr);
-    __fragptr_footer  = __s2c_chunk(__bestptr + __bestsize + __sc_fl_size);
-    __fragptr_payload = (__s_chunk_t)__sc_init(__bestsize, __sc_busy);
+    __fragptr_header  = __s2c_tag(__bestptr);
+    __fragptr_footer  = __s2c_tag(__bestptr + __bestsize + __st_size);
+    __fragptr_payload = (__s_tag_t)__st_init(__bestsize, __st_busy);
   }
 
   *__fragptr_header = __fragptr_payload;
@@ -649,21 +668,20 @@ __sattr_flatten_veccall static inline void * __s_nullable
   __s_uintptr_t __bestsize = salloc_capacity(__s);
 
   while (__iptr < __s_cursor) {
-    const __s_uint8_t is_chunk_free = __sc_is_free(__iptr);
+    const __s_uint8_t is_free = __st_is_free(__iptr);
 
-    __isize = __sc_get_size(__iptr);
-    if (!!is_chunk_free && __isize >= __require_size && __isize <= __bestsize) {
+    __isize = __st_get_size(__iptr);
+    if (!!is_free && __isize >= __require_size && __isize <= __bestsize) {
       __bestsize = __isize;
       __bestptr  = __iptr;
     }
-    __iptr += __isize + __sc_flbd_size;
+    __iptr += __isize + __st_bd_size;
   }
 
   if (!!__bestptr) {
-    __s_chunk_t * __bestptr_header = __s2c_chunk(__bestptr);
-    __s_chunk_t * __bestptr_footer =
-        __s2c_chunk(__bestptr + __require_size + __sc_fl_size);
-    const __s_chunk_t __bestptr_payload = __sc_init(__require_size, __sc_busy);
+    __s_tag_t *     __bestptr_header  = __s2c_tag(__bestptr);
+    __s_tag_t *     __bestptr_footer  = __s2c_tag(__bestptr + __require_size + __st_size);
+    const __s_tag_t __bestptr_payload = __st_init(__require_size, __st_busy);
 
     *__bestptr_header = __bestptr_payload;
     *__bestptr_footer = __bestptr_payload;
@@ -672,7 +690,7 @@ __sattr_flatten_veccall static inline void * __s_nullable
       __salloc_frag_free_space(__bestptr, __bestsize, __require_size);
     }
 
-    return __sc_chunk_get_ptr(__bestptr);
+    return __st_tag_get_ptr(__bestptr);
   }
 
   return NULL;
@@ -680,7 +698,7 @@ __sattr_flatten_veccall static inline void * __s_nullable
 __sattr_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const __s_size_t                      __size) {
-  register const __s_uintptr_t aligned_size = __sc_align_size(__size);
+  register const __s_uintptr_t aligned_size = __st_align_size(__size);
   register void * restrict out              = NULL;
 
   if (!aligned_size) {
@@ -691,7 +709,7 @@ __sattr_veccall_overload static inline void * __s_nullable
     out = __salloc_find_best_chunk(__s, aligned_size);
   }
   if (!out) {
-    out = __salloc_move_cursor(__s, aligned_size);
+    out = __salloc_extend_cursor(__s, aligned_size);
   }
 
   return out;
@@ -710,16 +728,18 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
  * |||||||||||||||||
  */
 
-__sattr_flatten_veccall static inline void
-    __sfree_frag(register __s_ptr_t __s_nonnull  __iptr,
-                 register __s_cptr_t __s_nonnull __baseptr) {
-  const __s_uintptr_t __base_size = __sc_get_size(__baseptr);
-  const __s_uintptr_t __iptr_size = __sc_get_size(__iptr);
-  const __s_uintptr_t __fragsize  = __base_size + __sc_flbd_size + __iptr_size;
+/**
+ * Base functional of memory space fragmentation on sfree call.
+ */
+__sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __iptr,
+                                                        register __s_cptr_t __baseptr) {
+  const __s_uintptr_t __base_size = __st_get_size(__baseptr);
+  const __s_uintptr_t __iptr_size = __st_get_size(__iptr);
+  const __s_uintptr_t __fragsize  = __base_size + __st_bd_size + __iptr_size;
 
-  __s_chunk_t *     __iptr_header  = __s2c_chunk(__iptr);
-  __s_chunk_t *     __iptr_footer  = __s2c_chunk(__iptr + __fragsize + __sc_fl_size);
-  const __s_chunk_t __iptr_payload = __sc_init(__fragsize, __sc_not_busy);
+  __s_tag_t *     __iptr_header  = __s2c_tag(__iptr);
+  __s_tag_t *     __iptr_footer  = __s2c_tag(__iptr + __fragsize + __st_size);
+  const __s_tag_t __iptr_payload = __st_init(__fragsize, __st_not_busy);
 
   *__iptr_header = __iptr_payload;
   *__iptr_footer = __iptr_payload;
@@ -729,7 +749,7 @@ __sattr_flatten_veccall static inline __s_uint8_t
                           register __s_cptr_t __s_nonnull                __ptr) {
   __s_uint8_t is_moved = 0;
 
-  if (__s->cursor <= (__ptr + __sc_get_size(__ptr) + __sc_flbd_size)) {
+  if (__s->cursor <= (__ptr + __st_get_size(__ptr) + __st_bd_size)) {
     __s->cursor = __ptr;
     is_moved    = 1;
   }
@@ -744,8 +764,8 @@ __sattr_veccall_overload static inline void
   const __s_cptr_t __s_start  = __s->start;
   const __s_cptr_t __s_cursor = __s->cursor;
 
-  __s_chunk_t * __ptr_chunk = __sc_ptr_get_chunk(__ptr);
-  __s_ptr_t     __iptr      = __s2c_ptr(__ptr_chunk);
+  __s_tag_t * __ptr_tag = __st_ptr_get_tag(__ptr);
+  __s_ptr_t   __iptr    = __s2c_ptr(__ptr_tag);
 
   /**
    * Left-side memory fragmentation.
@@ -756,15 +776,15 @@ __sattr_veccall_overload static inline void
    */
   if (__iptr > __s_start) {
     __s_ptr_t __baseptr = __iptr;
-    __iptr = __baseptr - __sc_flbd_size - __sc_get_size(__baseptr - __sc_fl_size);
+    __iptr              = __baseptr - __st_bd_size - __st_get_size(__baseptr - __st_size);
 
-    while (__iptr >= __s_start && __sc_is_free(__iptr)) {
+    while (__iptr >= __s_start && __st_is_free(__iptr)) {
       __sfree_frag(__iptr, __baseptr);
 
-      __s_ptr_t __prev_ptr = __iptr - __sc_fl_size;
+      __s_ptr_t __prev_ptr = __iptr - __st_size;
       if (__s_start <= __prev_ptr) {
-        __s_chunk_t * __prev_chunk = __s2c_chunk(__prev_ptr);
-        __prev_ptr                 = __prev_ptr - __prev_chunk->size - __sc_fl_size;
+        __s_tag_t * __prev_tag = __s2c_tag(__prev_ptr);
+        __prev_ptr             = __prev_ptr - __prev_tag->size - __st_size;
       }
 
       __baseptr = __iptr;
@@ -791,11 +811,11 @@ __sattr_veccall_overload static inline void
    */
   {
     __s_ptr_t __baseptr = __iptr;
-    __iptr              = __baseptr + __sc_get_size(__baseptr) + __sc_flbd_size;
+    __iptr              = __baseptr + __st_get_size(__baseptr) + __st_bd_size;
 
-    while (__iptr < __s_cursor && __sc_is_free(__iptr)) {
+    while (__iptr < __s_cursor && __st_is_free(__iptr)) {
       __sfree_frag(__baseptr, __iptr);
-      __iptr += __sc_get_size(__iptr) + __sc_flbd_size;
+      __iptr += __st_get_size(__iptr) + __st_bd_size;
     }
 
     __sfree_shrink_cursor(__s, __baseptr);
@@ -804,10 +824,10 @@ __sattr_veccall_overload static inline void
 
 __sattr_flatten_veccall_overload static inline void
     sfree(register void * restrict __s_nonnull __ptr) {
-  __s_chunk_t *       header     = __sc_ptr_get_chunk(__ptr);
-  const __s_uintptr_t chunk_size = header->size;
-  __s_chunk_t *       footer     = __s2c_chunk(__ptr + chunk_size);
-  const __s_chunk_t   payload    = __sc_init(chunk_size, __sc_not_busy);
+  __s_tag_t *         header   = __st_ptr_get_tag(__ptr);
+  const __s_uintptr_t ptr_size = header->size;
+  __s_tag_t *         footer   = __s2c_tag(__ptr + ptr_size);
+  const __s_tag_t     payload  = __st_init(ptr_size, __st_not_busy);
 
   *header = payload;
   *footer = payload;
@@ -819,7 +839,6 @@ __sattr_flatten_veccall_overload static inline void
  * -----------------------------
  */
 
-#define SALLOC_GDI_BUFFER
 #ifdef SALLOC_GDI_BUFFER
 #  undef SALLOC_GDI_BUFFER
 
@@ -844,7 +863,7 @@ __sattr_flatten_veccall_overload static inline void
  * so there is no additional prototypes or any other comments.
  */
 
-__sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_gdi_buffer(void) {
+__sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_get_gdi_buffer(void) {
   static __s_uint8_t __buffer[SALLOC_GDI_BUFFER_SIZE];
   static salloc_t    __slc = {__buffer, __buffer + SALLOC_GDI_BUFFER_SIZE, __buffer};
 
@@ -852,14 +871,14 @@ __sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_gdi_buffer(v
 }
 
 __sattr_flatten_veccall_overload static inline void salloc_delete(void) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
 
   salloc_delete(__gdi_slc);
 }
 
 #  ifdef SALLOC_DEBUG
 __sattr_flatten_veccall_overload static inline void salloc_trace(void) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   salloc_trace(__gdi_slc);
 }
 #  endif
@@ -869,14 +888,14 @@ __sattr_flatten_veccall_overload static inline __s_size_t salloc_capacity(void) 
 }
 
 __sattr_flatten_veccall_overload static inline __s_size_t salloc_used(void) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_size_t used               = salloc_used(__gdi_slc);
 
   return used;
 }
 
 __sattr_flatten_veccall_overload static inline __s_ssize_t salloc_unused(void) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc);
 
   return unused;
@@ -884,7 +903,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t salloc_unused(void) {
 
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register const __s_size_t __size) __sattr_diagnose_align(__size) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size);
 
   return unused;
@@ -893,7 +912,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register const __s_size_t __size, register const __s_size_t __nmemb)
         __sattr_diagnose_align(__size) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size, __nmemb);
 
   return unused;
@@ -901,7 +920,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register const __s_size_t __size) __sattr_diagnose_align(__size) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size);
 
   return __ptr;
@@ -909,7 +928,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register const __s_size_t __size, register const __s_size_t __nmemb)
         __sattr_diagnose_align(__size) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size, __nmemb);
 
   return __ptr;
@@ -917,7 +936,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 
 __sattr_flatten_veccall_overload static inline void
     sfree_gdi(register void * restrict const __gdi_ptr) {
-  salloc_t * restrict __gdi_slc = __salloc_gdi_buffer();
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
 
   sfree(__gdi_slc, __gdi_ptr);
 }
@@ -939,7 +958,7 @@ __sattr_flatten_veccall_overload static inline void
 
 #if defined(SALLOC_MACROS_AFTER_USE)
 #  undef __is_salloc_casts_defined__
-#  undef __is_salloc_chunks_defined__
+#  undef __is_salloc_tags_defined__
 #  undef __is_salloc_null_defined__
 #  undef __is_salloc_bool_defined__
 #endif
@@ -947,14 +966,6 @@ __sattr_flatten_veccall_overload static inline void
 #if defined(SALLOC_ATTRS_AFTER_USE)
 #  undef __is_salloc_attrs_defined__
 #endif
-
-#ifdef __is_salloc_null_defined__
-#  undef __is_salloc_null_defined__
-#  undef NULL
-#endif
-
-#undef __s_nonnull
-#undef __s_nullable
 
 #if __is_salloc_attrs_defined__
 #  undef __is_salloc_attrs_defined__
@@ -976,28 +987,36 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __sattr_flatten_veccall
 #endif
 
+#ifdef __is_salloc_null_defined__
+#  undef __is_salloc_null_defined__
+#  undef NULL
+#endif
+
+#undef __s_nonnull
+#undef __s_nullable
+
 #if __is_salloc_casts_defined__
 #  undef __is_salloc_casts_defined__
 #  undef __s2c_uiptr
 #  undef __s2c_sptr
-#  undef __s2c_chunk
+#  undef __s2c_tag
 #endif
 
-#if __is_salloc_chunks_defined__
-#  undef __is_salloc_chunks_defined__
-#  undef __sc_init
-#  undef __sc_align_default
-#  undef __sc_align_bits
-#  undef __sc_align_size
-#  undef __sc_fl_size
-#  undef __sc_flbd_size
-#  undef __sc_ptr_get_chunk
-#  undef __sc_chunk_get_ptr
-#  undef __sc_busy
-#  undef __sc_not_busy
-#  undef __sc_get_busy
-#  undef __sc_get_size
-#  undef __sc_is_free
+#if __is_salloc_tags_defined__
+#  undef __is_salloc_tags_defined__
+#  undef __st_init
+#  undef __st_align_default
+#  undef __st_align_bits
+#  undef __st_align_size
+#  undef __st_size
+#  undef __st_bd_size
+#  undef __st_ptr_get_tag
+#  undef __st_tag_get_ptr
+#  undef __st_busy
+#  undef __st_not_busy
+#  undef __st_get_busy
+#  undef __st_get_size
+#  undef __st_is_free
 #endif
 
 #pragma clang diagnostic pop
