@@ -30,7 +30,7 @@ Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf
 
 ## Docs :?
 
-### `salloc`-like allocators of (**s-allocators**):
+### `salloc`-like allocators (or **s-allocators**):
 
 - `void *salloc(salloc_t *__s, size_t __size)`: Allocates new static pointer in `__s` with at least `__size` bytes, and returns it.
 - `void *salloc(salloc_t *__s, size_t __size, size_t __nmemb)`: Allocates new static pointer in `__s` for an array of `__nmemb` elements of `__size` bytes each, and returns it.
