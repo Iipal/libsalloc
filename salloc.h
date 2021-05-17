@@ -128,7 +128,13 @@
 #  define __s_nullable
 #endif
 
-#if defined(__x86_64__) && !defined(__ILP32__)
+#if defined(__x86_64__) || defined(__aarch64__) || defined(__ia64__)
+#  define __S_WORDSIZE 64
+#else
+#  define __S_WORDSIZE 32
+#endif
+
+#if __S_WORDSIZE == 64
 typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64 */
 typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64   */
 #else
@@ -153,10 +159,20 @@ typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but co
  * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **footer**
  */
 typedef struct __s_salloc_tag {
-  __s_uint8_t __alignment : 3 __sattr_munused; /* as it is */
+#if __S_WORDSIZE == 64
+#  define __S_TAG_ALIGN_BITS 3
+#  define __S_TAG_SIZE_BITS  60
+#  define __S_TAG_BUSY_BITS  1
+#else
+#  define __S_TAG_ALIGN_BITS 2
+#  define __S_TAG_SIZE_BITS  29
+#  define __S_TAG_BUSY_BITS  1
+#endif
 
-  __s_uintptr_t size : 60; /* size of current pointer */
-  __s_uint8_t   busy : 1;  /* indicates is current pointer was freed or not */
+  __s_uint8_t __alignment : __S_TAG_ALIGN_BITS __sattr_munused; /* as it is */
+
+  __s_uintptr_t size : __S_TAG_SIZE_BITS; /* size of current pointer */
+  __s_uint8_t   busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
 } __sattr_packed __s_tag_t;
 
 /**
@@ -170,8 +186,8 @@ typedef struct __s_salloc_tag {
  * available memory to use in current static buffer.
  */
 typedef struct s_salloc_t {
-  __s_ptr_t start;  /* start of available space in static buffer */
-  __s_ptr_t end;    /* end of available space in static buffer */
+  __s_ptr_t start;  /* start  of available space in static buffer */
+  __s_ptr_t end;    /* end    of available space in static buffer */
   __s_ptr_t cursor; /* current max of use memory in static buffer */
 } salloc_t;
 
@@ -207,20 +223,13 @@ typedef struct s_salloc_t {
  */
 
 /**
- * Error text may be invalid depends on system due to problems with ## tokens parser
- * Refer to \c SALLOC_MIN_BUFFER_SIZE for valid minimum salloc buffer size.
- */
-#define __sattr_diagnose_buff_size(x) \
-  __sattr_diagnose_if(x < SALLOC_MIN_BUFFER_SIZE, #x " less than 32 (on x86_64)", "error")
-
-/**
  * Error text may be invalid depends on system due to problems with ## tokens parser.
  * Refer to \c SALLOC_MIN_ALLOC_SIZE for valid minimum s-allocation \ alignment value in
  * your system.
  */
-#define __sattr_diagnose_align(x) \
-  __sattr_diagnose_if(x % SALLOC_MIN_ALLOC_SIZE || x < SALLOC_MIN_ALLOC_SIZE, \
-                      #x " less than or is not aligned by 16 (on x86_64)", \
+#define __sattr_diagnose_align(x, align) \
+  __sattr_diagnose_if(x % align || x < align, \
+                      #x " less than or is not aligned by `" #align "` (on x86_64)", \
                       "error")
 
 /**
@@ -285,7 +294,8 @@ typedef struct s_salloc_t {
  */
 __sattr_veccall_const static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t capacity) __sattr_diagnose_buff_size(capacity);
+               register const __s_size_t                        capacity)
+        __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
 
 /**
  * \brief Deleting created by \c salloc_new object.
@@ -361,7 +371,8 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
  */
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t __size) __sattr_diagnose_align(__size);
+                  register const __s_size_t                      __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 /**
  * \brief Checks is in \c __s is enough space to allocate of \c __nmemb new pointers with
  * at least \c __size bytes each.
@@ -378,7 +389,8 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
                   register const __s_size_t                      __size,
-                  register const __s_size_t __nmemb) __sattr_diagnose_align(__size);
+                  register const __s_size_t                      __nmemb)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 /**
  * \brief Allocates new static pointer in \c __s with at least \c __size bytes, and
@@ -395,7 +407,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
  */
 __sattr_veccall_overload static inline void * __s_nullable salloc(
     register salloc_t * const restrict __s_nonnull __s, register const __s_size_t __size)
-    __sattr_diagnose_align(__size);
+    __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 /**
  * \brief Allocates new static pointer in \c __s for an array of \c __nmemb elements
@@ -414,7 +426,8 @@ __sattr_veccall_overload static inline void * __s_nullable salloc(
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const __s_size_t                      __size,
-           register const __s_size_t __nmemb) __sattr_diagnose_align(__size);
+           register const __s_size_t                      __nmemb)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 /**
  * \brief Free a \c __ptr.
@@ -902,7 +915,8 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t salloc_unused(void) {
 }
 
 __sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register const __s_size_t __size) __sattr_diagnose_align(__size) {
+    salloc_unused(register const __s_size_t __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size);
 
@@ -911,7 +925,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 
 __sattr_flatten_veccall_overload static inline __s_ssize_t
     salloc_unused(register const __s_size_t __size, register const __s_size_t __nmemb)
-        __sattr_diagnose_align(__size) {
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size, __nmemb);
 
@@ -919,7 +933,8 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 }
 
 __sattr_flatten_veccall_overload static inline void * __s_nullable
-    salloc(register const __s_size_t __size) __sattr_diagnose_align(__size) {
+    salloc(register const __s_size_t __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size);
 
@@ -927,7 +942,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 }
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register const __s_size_t __size, register const __s_size_t __nmemb)
-        __sattr_diagnose_align(__size) {
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size, __nmemb);
 
@@ -972,7 +987,6 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __is_cpp_attr__
 #  undef __sattr_diagnose_if
 #  undef __sattr_diagnose_align
-#  undef __sattr_diagnose_buff_size
 #  undef __sattr_veccall
 #  undef __sattr_const
 #  undef __sattr_overload
@@ -994,6 +1008,12 @@ __sattr_flatten_veccall_overload static inline void
 
 #undef __s_nonnull
 #undef __s_nullable
+
+#undef __S_WORDSIZE
+
+#undef __S_TAG_ALIGN_BITS
+#undef __S_TAG_SIZE_BITS
+#undef __S_TAG_BUSY_BITS
 
 #if __is_salloc_casts_defined__
 #  undef __is_salloc_casts_defined__
