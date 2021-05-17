@@ -31,6 +31,11 @@
 #  define __sattr_diagnose_if(x, msg, type)
 #endif
 
+#define __sattr_diagnose_align(x, align) \
+  __sattr_diagnose_if(x % align || x < align, \
+                      #x " less than or is not aligned by `" #align "`", \
+                      "error")
+
 #if __is_cpp_attr__
 #  define __sattr_veccall [[clang::vectorcall]]
 #else
@@ -221,16 +226,6 @@ typedef struct s_salloc_t {
  * MACROS DEFINITIONS
  * ------------------
  */
-
-/**
- * Error text may be invalid depends on system due to problems with ## tokens parser.
- * Refer to \c SALLOC_MIN_ALLOC_SIZE for valid minimum s-allocation \ alignment value in
- * your system.
- */
-#define __sattr_diagnose_align(x, align) \
-  __sattr_diagnose_if(x % align || x < align, \
-                      #x " less than or is not aligned by `" #align "` (on x86_64)", \
-                      "error")
 
 /**
  * Most convenient type conversions
