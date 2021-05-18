@@ -605,7 +605,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
                   register const __s_size_t                      __size,
                   register const __s_size_t                      __nmemb) {
   const __s_size_t  aligned      = __st_align_size(__size);
-  const __s_size_t  require_size = __nmemb * aligned + __nmemb * __st_bd_size;
+  const __s_size_t  require_size = __nmemb * (aligned + __st_bd_size);
   const __s_ssize_t unused       = salloc_unused(__s);
   const __s_ssize_t out          = unused - require_size;
 
@@ -678,6 +678,10 @@ __sattr_flatten_veccall static inline void
   *__fragptr_header = __fragptr_payload;
   *__fragptr_footer = __fragptr_payload;
 }
+/**
+ * Trying to find freed, best-fit memory chunk in all currently used memory in static
+ * buffer memory for \c __require_size bytes
+ */
 __sattr_flatten_veccall static inline void * __s_nullable
     __salloc_find_best_chunk(register salloc_t * const restrict __s_nonnull __s,
                              register const __s_size_t __require_size) {
@@ -719,12 +723,12 @@ __sattr_flatten_veccall static inline void * __s_nullable
 __sattr_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const __s_size_t                      __size) {
-  register const __s_uintptr_t aligned_size = __st_align_size(__size);
-  register void * restrict out              = NULL;
-
-  if (!aligned_size) {
+  if (!__size) {
     return NULL;
   }
+
+  register const __s_uintptr_t aligned_size = __st_align_size(__size);
+  register void * restrict out              = NULL;
 
   if (__s->start < __s->cursor) {
     out = __salloc_find_best_chunk(__s, aligned_size);
@@ -752,19 +756,25 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 /**
  * Base functional of memory space fragmentation on sfree call.
  */
-__sattr_flatten_veccall static inline void __sfree_frag(register __s_ptr_t  __iptr,
-                                                        register __s_cptr_t __baseptr) {
-  const __s_uintptr_t __base_size = __st_get_size(__baseptr);
-  const __s_uintptr_t __iptr_size = __st_get_size(__iptr);
-  const __s_uintptr_t __fragsize  = __base_size + __st_bd_size + __iptr_size;
+__sattr_flatten_veccall static inline void
+    __sfree_fragmentation_base(register __s_ptr_t  __update_ptr,
+                               register __s_cptr_t __concat_ptr) {
+  register const __s_uintptr_t __concant_size    = __st_get_size(__concat_ptr);
+  register const __s_uintptr_t __update_ptr_size = __st_get_size(__update_ptr);
+  register const __s_uintptr_t __new_size =
+      __concant_size + __st_bd_size + __update_ptr_size;
 
-  __s_tag_t *     __iptr_header  = __s2c_tag(__iptr);
-  __s_tag_t *     __iptr_footer  = __s2c_tag(__iptr + __fragsize + __st_size);
-  const __s_tag_t __iptr_payload = __st_init(__fragsize, __st_not_busy);
+  __s_tag_t * const restrict __update_ptr_header = __s2c_tag(__update_ptr);
+  __s_tag_t * const restrict __update_ptr_footer =
+      __s2c_tag(__update_ptr + __new_size + __st_size);
+  const __s_tag_t __update_ptr_payload = __st_init(__new_size, __st_not_busy);
 
-  *__iptr_header = __iptr_payload;
-  *__iptr_footer = __iptr_payload;
+  *__update_ptr_header = __update_ptr_payload;
+  *__update_ptr_footer = __update_ptr_payload;
 }
+/**
+ * After each fragmentation trying to shrink the static buffer memory usage cursor.
+ */
 __sattr_flatten_veccall static inline __s_uint8_t
     __sfree_shrink_cursor(register salloc_t * const restrict __s_nonnull __s,
                           register __s_cptr_t __s_nonnull                __ptr) {
@@ -797,10 +807,10 @@ __sattr_veccall_overload static inline void
    */
   if (__iptr > __s_start) {
     __s_ptr_t __baseptr = __iptr;
-    __iptr              = __baseptr - __st_bd_size - __st_get_size(__baseptr - __st_size);
+    __iptr              = __baseptr - __st_get_size(__baseptr - __st_size) - __st_bd_size;
 
     while (__iptr >= __s_start && __st_is_free(__iptr)) {
-      __sfree_frag(__iptr, __baseptr);
+      __sfree_fragmentation_base(__iptr, __baseptr);
 
       __s_ptr_t __prev_ptr = __iptr - __st_size;
       if (__s_start <= __prev_ptr) {
@@ -835,7 +845,7 @@ __sattr_veccall_overload static inline void
     __iptr              = __baseptr + __st_get_size(__baseptr) + __st_bd_size;
 
     while (__iptr < __s_cursor && __st_is_free(__iptr)) {
-      __sfree_frag(__baseptr, __iptr);
+      __sfree_fragmentation_base(__baseptr, __iptr);
       __iptr += __st_get_size(__iptr) + __st_bd_size;
     }
 
