@@ -141,13 +141,18 @@
 
 #if __S_WORDSIZE == 64
 typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64 */
-typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64   */
+typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64 */
 #else
-typedef unsigned int __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
-typedef int          __s_ssize_t;   /* salloc analog of ssize_t; x32   */
+typedef unsigned int  __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
+typedef int           __s_ssize_t;   /* salloc analog of ssize_t; x32 */
 #endif
 
-typedef __SIZE_TYPE__                      __s_size_t;  /* salloc analog of size_t  */
+#ifdef __SIZE_TYPE__
+typedef __SIZE_TYPE__ __s_size_t; /* salloc analog of size_t */
+#else
+typedef __s_uintptr_t __s_size_t;    /* salloc analog of size_t */
+#endif
+
 typedef unsigned char                      __s_uint8_t; /* salloc analog of uint8_t */
 typedef __s_uint8_t * restrict __s_nonnull __s_ptr_t;   /* most common pointer type */
 typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but const */
@@ -165,13 +170,21 @@ typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but co
  */
 typedef struct __s_salloc_tag {
 #if __S_WORDSIZE == 64
-#  define __S_TAG_ALIGN_BITS 3
-#  define __S_TAG_SIZE_BITS  60
-#  define __S_TAG_BUSY_BITS  1
+#  define __S_TAG_ALIGN_BITS \
+    3 /* if we on 64bit system then default alignment of (sizeof(void*)*2) will be \
+         equal to 16 bytes(alwayz: ...1111 0000). This mean that 4 last bits are \
+         available to use, and 1 of them is for busy indicator, so 3 for alignment then \
+       */
+#  define __S_TAG_SIZE_BITS 60 /** value aligned by 16 always took only 60 bits */
+#  define __S_TAG_BUSY_BITS 1  /** busy indicator */
 #else
-#  define __S_TAG_ALIGN_BITS 2
-#  define __S_TAG_SIZE_BITS  29
-#  define __S_TAG_BUSY_BITS  1
+#  define __S_TAG_ALIGN_BITS \
+    2 /* if we on 32bit system then default alignment of (sizeof(void*)*2) will be equal \
+         to 8(alwayz: ...1111 1000), not 16, so this mean that only 3 last bits are \
+         available to use, \
+         and 1 of them is for busy indicator, so 2 for alignment then */
+#  define __S_TAG_SIZE_BITS 29 /** value aligned by 8 always took only 29 bits */
+#  define __S_TAG_BUSY_BITS 1  /** busy indicator **/
 #endif
 
   __s_uint8_t __alignment : __S_TAG_ALIGN_BITS __sattr_munused; /* as it is */
@@ -191,9 +204,9 @@ typedef struct __s_salloc_tag {
  * available memory to use in current static buffer.
  */
 typedef struct s_salloc_t {
-  __s_ptr_t start;  /* start  of available space in static buffer */
-  __s_ptr_t end;    /* end    of available space in static buffer */
-  __s_ptr_t cursor; /* current max of use memory in static buffer */
+  __s_ptr_t start;  /* start   of available space in static buffer */
+  __s_ptr_t end;    /* end     of available space in static buffer */
+  __s_ptr_t cursor; /* current max of memory used in static buffer */
 } salloc_t;
 
 /**
