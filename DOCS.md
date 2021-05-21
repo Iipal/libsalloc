@@ -1,7 +1,7 @@
 # SALLOC DOCUMENTATIONS
 
 ## Why it's here and not in code?
-Because in code with time it's makes everything harder to navigate. Still types has comments because of reasons, only functions and macroses docs moved here.
+Because in code with time it's makes everything harder to navigate. Still it's doesn't mean that code has no comments at all, at least types are always described as well as functionality.
 
 ## Navigation
 
