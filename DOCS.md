@@ -90,7 +90,7 @@ typedef struct s_salloc_t {
 ```
 
 ## Public Macroses
- - `SALLOC_MIN_ALLOC_SIZE`: Minium allocation size in static buffer because it's also default alignment.
+ - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer because it's also default alignment.
  - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size.
  - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a buffer with size of `capacity` prefixed with `name` and `salloc_t` object for s-allocators. It's creates:
    - `static __s_uint8_t name##_buff[(capacity)];`
@@ -318,7 +318,7 @@ Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at
 #### Returns
  - `0`: new `__nmemb` s-allocations with at least `__size` each will take all the unused memory.
  - __Negative__: the size of how much new `__nmemb` pointers with at
-  least `__size` each will exceed the unused memory.
+    least `__size` each will exceed the unused memory.
  - __Positive__: available space after s-allocation of `__nmemb` new pointers with at least `__size` bytes each.
 
 
