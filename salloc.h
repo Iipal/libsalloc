@@ -16,13 +16,13 @@
  * ---------------------
  */
 
-#define __is_salloc_attrs_defined__ 1
+#define __sis_salloc_attrs_defined__ 1
 
 #if __has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
     (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L)
-#  define __is_cpp_attr__ 1
+#  define __sis_salloc_cpp_attr__ 1
 #else
-#  define __is_cpp_attr__ 0
+#  define __sis_salloc_cpp_attr__ 0
 #endif
 
 #if __has_attribute(diagnose_if)
@@ -36,7 +36,7 @@
                       #x " less than or is not aligned by `" #align "`", \
                       "error")
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_veccall [[clang::vectorcall]]
 #else
 #  if __has_attribute(vectorcall)
@@ -46,7 +46,7 @@
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_const [[gnu::const]]
 #else
 #  if __has_attribute(const)
@@ -56,7 +56,7 @@
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_overload [[clang::overloadable]]
 #else
 #  if __has_attribute(overloadable)
@@ -67,7 +67,7 @@
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_flatten [[gnu::flatten]]
 #else
 #  if __has_attribute(flatten)
@@ -77,17 +77,17 @@
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_munused [[maybe_unused]]
 #else
-#  if __has_attribute(unused)
-#    define __sattr_munused __attribute__((unused))
+#  if __has_attribute(maybe_unused)
+#    define __sattr_munused __attribute__((maybe_unused))
 #  else
 #    define __sattr_munused
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_packed [[packed]]
 #else
 #  if __has_attribute(packed)
@@ -97,7 +97,7 @@
 #  endif
 #endif
 
-#if __is_cpp_attr__
+#if __sis_salloc_cpp_attr__
 #  define __sattr_deprecated(msg) [[gnu::deprecated(msg)]]
 #else
 #  if __has_attribute(deprecated)
@@ -113,17 +113,17 @@
 #define __sattr_flatten_veccall_overload __sattr_flatten __sattr_veccall __sattr_overload
 #define __sattr_flatten_veccall          __sattr_flatten __sattr_veccall
 
+#ifndef NULL
+#  define __sis_salloc_null_defined__ 1
+
+#  define NULL ((void *)0)
+#endif
+
 /**
  * ----------------
  * TYPES DEFINITION
  * ----------------
  */
-
-#ifndef NULL
-#  define __is_salloc_null_defined__ 1
-
-#  define NULL ((void *)0)
-#endif
 
 #ifdef SALLOC_NULLABILITY
 #  define __s_nonnull  _Nonnull
@@ -240,35 +240,30 @@ typedef struct s_salloc_t {
  * ------------------
  */
 
+#ifndef __sis_salloc_macroses_defined__
+#  define __sis_salloc_macroses_defined__ 1
 /**
  * Most convenient type conversions
+ *
+ * __s2c prefix stands as shortcut for __salloc_to_cast
  */
-#ifndef __is_salloc_casts_defined__
-#  define __is_salloc_casts_defined__ 1
-
-/** __s2c prefix stands as shortcut for __salloc_to_cast **/
 
 #  define __s2c_uiptr(x) ((__s_uintptr_t)(x))
 #  define __s2c_ptr(x)   ((__s_ptr_t)(x))
 #  define __s2c_tag(x)   ((__s_tag_t *)(void *)(x))
 
-#endif
-
 /**
- * For work with memory boundary tags or as with bi-directional implicit free-list
+ * For work with memory Boundary Tags or as with bi-directional implicit free-list
+ *
+ * __st prefix stands as shortcut for __salloc_tag
  */
-#ifndef __is_salloc_tags_defined__
-#  define __is_salloc_tags_defined__ 1
-
-/** __st prefix stands as shortcut for __salloc_tag **/
 
 #  define __st_init(size, busy) \
     { 0 /* __alignment */, (size), (busy) }
 
 #  define __st_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
-#  define __st_align_bits    (__st_align_default - 1)
 #  define __st_align_size(x) \
-    (((x) % __st_align_default) ? ((x) + ((~(x)&__st_align_bits) + 1)) : (x))
+    (((x) % __st_align_default) ? ((x) + ((~(x) & (__st_align_default - 1)) + 1)) : (x))
 
 #  define __st_size    __s2c_uiptr(sizeof(__s_tag_t))
 #  define __st_bd_size (__st_size * 2) // bd stands for bi-directional
@@ -291,182 +286,56 @@ typedef struct s_salloc_t {
  * --------------------
  */
 
-/**
- * \brief Creating a new static buffer to use by \c salloc -allocators with at most
- * \c capacity bytes.
- *
- * \param buff a pointer to static buffer.
- * \param capacity a \c buff length \ size \ capacity.
- *
- * \return new \c salloc_t object to work with \c salloc -allocators.
- */
-__sattr_veccall_const static inline salloc_t
-    salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        capacity)
-        __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
-
-/**
- * \brief Deleting created by \c salloc_new object.
- *
- * \note This is not actually deleting the object. All pointers are still valid and all
- * the data under them will be kept as well after calling the \c salloc_delete . It's only
- * removing the markup of memory chunks used by \c salloc -allocators. After this
- * call your static \c buff what you set with \c salloc_new will now have additionally
- * free 16 bytes at both sides (before and after the pointer) of each allocated memory
- * pointers with \c salloc .
- *
- * \warning If you call \c salloc with the same object you passed to
- * \c salloc_delete - new memory can possibly override data under the previously used
- * pointers by data with \c salloc memory markup.
- *
- * \param __s a pointer to \c salloc_t object.
- */
-__sattr_flatten_veccall_overload static inline void
-    salloc_delete(register salloc_t * const restrict __s_nonnull __s);
-
-#ifdef SALLOC_DEBUG
-/**
- * \brief Just prints \ trace all the pointers stored in \c salloc_t object.
- *
- * \deprecated This function using libc \c printf , and incudes \c stdio.h .
- *
- * \param __s a pointer to \c salloc_t object.
- */
-__sattr_veccall_overload static inline void
-    salloc_trace(register salloc_t * const restrict __s_nonnull __s);
-#endif
-
-/**
- * \brief Returns size\capacity of static buffer.
- *
- * \param __s a pointer to \c salloc_t object.
- *
- * \return capacity of static buffer mapped in \c __s .
- */
-__sattr_flatten_veccall_overload static inline __s_size_t
-    salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
-
-/**
- * \brief Returns size of used memory in static buffer.
- *
- * \param __s a pointer to \c salloc_t object.
- *
- * \return 0 - no used memory. Otherwise - size of used memory.
- */
-__sattr_flatten_veccall_overload static inline __s_size_t
-    salloc_used(register salloc_t * const restrict __s_nonnull __s);
-
-/**
- * \brief Returns size of unused memory in static buffer.
- *
- * \param __s a pointer to \c salloc_t object.
- *
- * \return 0 - no unused memory. Positive - size of available\unused memory. Negative -
- * somehow in static buffer are more allocated memory than buffer can fit.
- */
-__sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register salloc_t * const restrict __s_nonnull __s);
-/**
- * \brief Checks is in \c __s is enough space to allocate new pointer with at least
- * \c __size bytes.
- *
- * \param __s a pointer to \c salloc_t object.
- * \param __size required size of s-allocation.
- *
- * \return 0 - if new s-allocation will take all the unused memory. Negative - the size of
- * how much the pointer with at least \c __size will exceed the unused memory. Positive -
- * available space after s-allocation of the new pointer with at least \c __size bytes.
- */
-__sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size)
-        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
-/**
- * \brief Checks is in \c __s is enough space to allocate of \c __nmemb new pointers with
- * at least \c __size bytes each.
- *
- * \param __s a pointer to \c salloc_t object.
- * \param __size required size of s-allocation for each pointer.
- * \param __nmemb N-pointers to check for s-allocation.
- *
- * \return 0 - if new \c __nmemb s-allocations with at least \c __size each will take all
- * the unused memory. Negative - the size of how much new \c __nmemb pointers with at
- * least \c __size each will exceed the unused memory. Positive - available space after
- * s-allocation of \c __nmemb new pointers with at least \c __size bytes each.
- */
-__sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size,
-                  register const __s_size_t                      __nmemb)
-        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
-
-/**
- * \brief Allocates new static pointer in \c __s with at least \c __size bytes, and
- * returns it.
- *
- * \param __s a pointer to \c salloc_t object.
- * \param __size size in bytes.
- *
- * \return A valid pointer with at least \c __size bytes.
- *         Or \c NULL if:
- *           - static buffer in \c __s has no available memory;
- *           - \c __size is equals to 0;
- *           - \c __s is NULL;
- */
 __sattr_veccall_overload static inline void * __s_nullable salloc(
     register salloc_t * const restrict __s_nonnull __s, register const __s_size_t __size)
     __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
-/**
- * \brief Allocates new static pointer in \c __s for an array of \c __nmemb elements
- *        of \c __size bytes each, and returns it.
- *
- * \param __s a pointer to \c salloc_t object.
- * \param __size size of each element in bytes.
- * \param __nmemb N-elements.
- *
- * \return A valid pointer with at least ( \c __nmemb * \c __size ) bytes.
- *         Or \c NULL if:
- *           - static buffer in \c __s has no available memory;
- *           - ( \c __nmemb * \c __size ) is equals to 0;
- *           - \c __s is NULL;
- */
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const __s_size_t                      __size,
            register const __s_size_t                      __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
-/**
- * \brief Free a \c __ptr.
- *
- * \note This function marking up space that was allocated for \c __ptr as free,
- * and will try to optimize a static buffer in \c __s.
- *
- * \warning A \c __ptr will be a valid pointer after this call of \c sfree , but data
- * under it can possibly be overwritten with the next calls of \c salloc -allocators.
- *
- * \param __s a pointer to \c salloc_t object.
- * \param __ptr a pointer to be freed.
- */
 __sattr_veccall_overload static inline void
     sfree(register salloc_t * const restrict __s_nonnull __s,
           register void * restrict __s_nonnull           __ptr);
-
-/**
- * \brief Un-safe free of \c __ptr.
- *
- * \note This function only marking up space that was allocated for \c __ptr as free.
- *
- * \warning This function will not optimize a static buffer that you set with \c
- * salloc_new at all. Use it on your risk or use \c sfree with \c salloc_t as the first
- * parameter. A \c __ptr will be a valid pointer after this call of \c sfree , but data
- * under it can possibly be overwritten with the next calls of \c salloc -allocators.
- *
- * \param __ptr a pointer to be freed.
- */
 __sattr_flatten_veccall_overload static inline void
     sfree(register void * restrict __s_nonnull __ptr);
+
+__sattr_veccall_const_overload static inline salloc_t
+    salloc_new(register const void * const restrict __s_nonnull buff,
+               register const __s_size_t                        capacity)
+        __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
+__sattr_veccall_const_overload static inline void
+    salloc_new(register const void * const restrict __s_nonnull buff,
+               register const __s_size_t                        capacity,
+               register salloc_t * const restrict __s)
+        __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
+
+__sattr_flatten_veccall_overload static inline void
+    salloc_delete(register salloc_t * const restrict __s_nonnull __s);
+
+#ifdef SALLOC_DEBUG
+__sattr_veccall_overload static inline void
+    salloc_trace(register salloc_t * const restrict __s_nonnull __s);
+#endif
+__sattr_flatten_veccall_overload static inline __s_size_t
+    salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
+
+__sattr_flatten_veccall_overload static inline __s_size_t
+    salloc_used(register salloc_t * const restrict __s_nonnull __s);
+
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s_nonnull __s);
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s_nonnull __s,
+                  register const __s_size_t                      __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
+__sattr_flatten_veccall_overload static inline __s_ssize_t
+    salloc_unused(register salloc_t * const restrict __s_nonnull __s,
+                  register const __s_size_t                      __size,
+                  register const __s_size_t                      __nmemb)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 /**
  * --------------------
@@ -480,13 +349,19 @@ __sattr_flatten_veccall_overload static inline void
  * ||||||||||||||||||||||
  */
 
-__sattr_veccall_const static inline salloc_t
+__sattr_veccall_const_overload static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const __s_size_t                        capacity) {
   __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)capacity);
   salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
   return out;
+}
+__sattr_veccall_const_overload static inline void
+    salloc_new(register const void * const restrict __s_nonnull buff,
+               register const __s_size_t                        capacity,
+               register salloc_t * const restrict __s) {
+  *__s = salloc_new(buff, capacity);
 }
 
 /**
@@ -876,7 +751,7 @@ __sattr_flatten_veccall_overload static inline void
 /**
  * GDI - Global Data Interace
  * In this case it's global interface to access global static buffer without manually
- * crating \c salloc_t object. Size of this buffer can be specified with
+ * creating the \c salloc_t object. Size of this buffer can be specified with
  * \c SALLOC_GDI_BUFFER_SIZE .
  */
 #  define SALLOC_GDI_BUFFER 1
@@ -984,25 +859,16 @@ __sattr_flatten_veccall_overload static inline void
 
 #if defined(SALLOC_MACROS_AFTER_USE)
 #  warning "salloc macroses still defined."
+#  undef __sis_salloc_macroses_defined__
 #endif
 #if defined(SALLOC_ATTRS_AFTER_USE)
 #  warning "salloc attributes still defined."
+#  undef __sis_salloc_attrs_defined__
 #endif
 
-#if defined(SALLOC_MACROS_AFTER_USE)
-#  undef __is_salloc_casts_defined__
-#  undef __is_salloc_tags_defined__
-#  undef __is_salloc_null_defined__
-#  undef __is_salloc_bool_defined__
-#endif
-
-#if defined(SALLOC_ATTRS_AFTER_USE)
-#  undef __is_salloc_attrs_defined__
-#endif
-
-#if __is_salloc_attrs_defined__
-#  undef __is_salloc_attrs_defined__
-#  undef __is_cpp_attr__
+#ifdef __sis_salloc_attrs_defined__
+#  undef __sis_salloc_attrs_defined__
+#  undef __sis_salloc_cpp_attr__
 #  undef __sattr_diagnose_if
 #  undef __sattr_diagnose_align
 #  undef __sattr_veccall
@@ -1019,29 +885,26 @@ __sattr_flatten_veccall_overload static inline void
 #  undef __sattr_flatten_veccall
 #endif
 
-#ifdef __is_salloc_null_defined__
-#  undef __is_salloc_null_defined__
+#ifdef __sis_salloc_null_defined__
+#  undef __sis_salloc_null_defined__
 #  undef NULL
 #endif
 
-#undef __s_nonnull
-#undef __s_nullable
+#if __sis_salloc_macroses_defined__
+#  undef __sis_salloc_macroses_defined__
 
-#undef __S_WORDSIZE
+#  undef __s_nonnull
+#  undef __s_nullable
 
-#undef __S_TAG_ALIGN_BITS
-#undef __S_TAG_SIZE_BITS
-#undef __S_TAG_BUSY_BITS
+#  undef __S_WORDSIZE
+#  undef __S_TAG_ALIGN_BITS
+#  undef __S_TAG_SIZE_BITS
+#  undef __S_TAG_BUSY_BITS
 
-#if __is_salloc_casts_defined__
-#  undef __is_salloc_casts_defined__
 #  undef __s2c_uiptr
 #  undef __s2c_sptr
 #  undef __s2c_tag
-#endif
 
-#if __is_salloc_tags_defined__
-#  undef __is_salloc_tags_defined__
 #  undef __st_init
 #  undef __st_align_default
 #  undef __st_align_bits
