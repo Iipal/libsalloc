@@ -343,7 +343,7 @@ This is just an interface above the original [s-allocators](#s-allocators), and 
 > The main difference is you must to use [`sfree_gdi`](#sfree_gdivoid-__gdi_ptr) to free AND optimize the space in global static buffer.
 
 
-Everything described in this section works only with `SALLOC_GDI_BUFFER` setting, still it's recommended to use it because for compiler it's harder to optimize, so performance between this functions and default s-allocators may be differ.
+Everything described in this section works only with `SALLOC_GDI_BUFFER` setting, still it's NOT recommended to use it because for compiler it's harder to optimize, so performance between this functions and default s-allocators may be differ.
 
 
 Also this section has less comments to the overloaded functions (which is not mentioned in __Overloads__ section of each default [s-allocators](#s-allocators)) because it will refer to the original [s-allocators](#s-allocators) from which all the behavior are __nested__.
