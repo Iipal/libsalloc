@@ -4,10 +4,52 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgcc-compat"
 
+/**
+ * -------------
+ * CONFIGURATION
+ * -------------
+ */
+
+#ifdef SALLOC_AFTERUSE_INTERNAL_MACROS
+#  define __sis_salloc_afteruse_macros_defined__ 1
+#endif
+
+#ifdef SALLOC_AFTERUSE_INTERNAL_ATTR
+#  define __sis_salloc_afteruse_attrs_defined__ 1
+#endif
+
+#ifdef SALLOC_NULLABILITY
+/**
+ * enables clang nullability checks
+ * (https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They
+ * are can still be accessible if \c SALLOC_AFTERUSE_INTERNAL_MACROS is defined.
+ */
+#  define __sis_salloc_nullability_defined__ 1
+#endif
+
 #ifdef SALLOC_DEBUG
-/* deprecated in release-version. used only by salloc_trace in debug-purposes */
-#  warning "use of SALLOC_DEBUG is not allowed for non-debug purposes. please remove it."
+/**
+ * Enables \c salloc_trace function and includes \c stdio.h.
+ */
+#  define __sis_salloc_debug_defined__ 1
 #  include <stdio.h>
+#endif
+
+#ifdef SALLOC_GDI_BUFFER
+/**
+ * GDI - Global Data Interace
+ * In this case it's global interface to access global static buffer without manually
+ * creating the \c salloc_t object. Size of this buffer can be specified with
+ * \c SALLOC_GDI_BUFFER_SIZE .
+ */
+#  define __sis_salloc_gdi_buffer_defined__ 1
+
+#  ifndef SALLOC_GDI_BUFFER_SIZE
+/**
+ * Size of global static buffer
+ */
+#    define SALLOC_GDI_BUFFER_SIZE 4096
+#  endif
 #endif
 
 /**
@@ -119,7 +161,7 @@
  * ----------------
  */
 
-#ifdef SALLOC_NULLABILITY
+#ifdef __sis_salloc_nullability_defined__
 #  define __s_nonnull  _Nonnull
 #  define __s_nullable _Nullable
 #else
@@ -174,9 +216,10 @@ typedef struct __s_salloc_tag {
 #  define __S_TAG_BUSY_BITS 1  /** busy indicator */
 #else
 #  define __S_TAG_ALIGN_BITS \
-    2 /* if we on 32bit system then default alignment of (sizeof(void*)*2) will be equal \
-         to 8(alwayz: ...1111 1000), not 16, so this mean that only 3 last bits are \
-         available to use. 1 of them is for busy indicator, so 2 for alignment then */
+    2 /* if we on 32bit system then default alignment of (sizeof(void*)*2) will be \
+         equal to 8(alwayz: ...1111 1000), not 16, so this mean that only 3 last \
+         bits are available to use. 1 of them is for busy indicator, so 2 for \
+         alignment then */
 #  define __S_TAG_SIZE_BITS 29 /** value aligned by 8 always took only 29 bits */
 #  define __S_TAG_BUSY_BITS 1  /** busy indicator **/
 #endif
@@ -320,7 +363,7 @@ __sattr_veccall_const_overload static inline void
 __sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
-#ifdef SALLOC_DEBUG
+#ifdef __sis_salloc_debug_defined__
 __sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s);
 #endif
@@ -381,7 +424,7 @@ __sattr_flatten_veccall_overload static inline void
   __s->cursor = __s->start;
 }
 
-#ifdef SALLOC_DEBUG
+#ifdef __sis_salloc_debug_defined__
 /**
  * ||||||||||||||||||||||||
  * SALLOC_TRACE DEFINITIONS
@@ -751,24 +794,7 @@ __sattr_flatten_veccall_overload static inline void
  * -----------------------------
  */
 
-#ifdef SALLOC_GDI_BUFFER
-#  undef SALLOC_GDI_BUFFER
-
-/**
- * GDI - Global Data Interace
- * In this case it's global interface to access global static buffer without manually
- * creating the \c salloc_t object. Size of this buffer can be specified with
- * \c SALLOC_GDI_BUFFER_SIZE .
- */
-#  define SALLOC_GDI_BUFFER 1
-
-#  ifndef SALLOC_GDI_BUFFER_SIZE
-
-/**
- * Size of global static buffer
- */
-#    define SALLOC_GDI_BUFFER_SIZE 4096
-#  endif
+#ifdef __sis_salloc_gdi_buffer_defined__
 
 /**
  * Below just an interfaces\accessors to all the standard s-allocators via gdi buffer,
@@ -862,11 +888,11 @@ __sattr_flatten_veccall_overload static inline void
  * ---------------
  */
 
-#if defined(SALLOC_MACROS_AFTER_USE)
+#ifdef __sis_salloc_afteruse_macros_defined__
 #  warning "salloc macroses still defined."
 #  undef __sis_salloc_macroses_defined__
 #endif
-#if defined(SALLOC_ATTRS_AFTER_USE)
+#ifdef __sis_salloc_afteruse_attrs_defined__
 #  warning "salloc attributes still defined."
 #  undef __sis_salloc_attrs_defined__
 #endif

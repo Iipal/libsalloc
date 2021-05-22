@@ -28,9 +28,9 @@ Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf
 
 You can specify a few settings before include `salloc.h`:
 
- - `SALLOC_MACROS_AFTER_USE`: for use [internal macroses](#macroses) outside of `salloc.h` (This setting will not un-define them).
- - `SALLOC_ATTRS_AFTER_USE`: for use [attributes](#attributes) outside of `salloc.h`.
- - `SALLOC_NULLABILITY`: enables clang [nullability checks](https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They are can still be accessible if `SALLOC_MACROS_AFTER_USE` is defined.
+ - `SALLOC_AFTERUSE_INTERNAL_MACROS`: for use [internal macroses](#macroses) outside of `salloc.h` (This setting will not un-define them).
+ - `SALLOC_AFTERUSE_INTERNAL_ATTR`: for use [attributes](#attributes) outside of `salloc.h`.
+ - `SALLOC_NULLABILITY`: enables clang [nullability checks](https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They are can still be accessible if `SALLOC_AFTERUSE_INTERNAL_MACROS` is defined.
  - `SALLOC_DEBUG`: enables `salloc_trace` function and includes `stdio.h`.
  - `SALLOC_GDI_BUFFER`: more about this setting [here](#gdi).
 
