@@ -7,12 +7,12 @@
 int main(void) {
   salloc_new_fast(, 4096);
 
-  const __s_size_t chunk_size = 16;
-  __s_ptr_t        chunk1     = salloc(&_slc, chunk_size);
-  __s_ptr_t        chunk2     = salloc(&_slc, chunk_size);
-  __s_ptr_t        chunk3     = salloc(&_slc, chunk_size);
-  __s_ptr_t        chunk4     = salloc(&_slc, chunk_size);
-  __s_ptr_t        chunk5     = salloc(&_slc, chunk_size);
+  const salloc_size_t chunk_size = 16;
+  salloc_ptr_t        chunk1     = salloc(&_slc, chunk_size);
+  salloc_ptr_t        chunk2     = salloc(&_slc, chunk_size);
+  salloc_ptr_t        chunk3     = salloc(&_slc, chunk_size);
+  salloc_ptr_t        chunk4     = salloc(&_slc, chunk_size);
+  salloc_ptr_t        chunk5     = salloc(&_slc, chunk_size);
 
   printf("ALL CHUNKS NON-FREED\n");
   salloc_trace(&_slc);
@@ -26,10 +26,10 @@ int main(void) {
   sfree(&_slc, chunk3);
   salloc_trace(&_slc);
 
-  for (__s_size_t i = 0; 6 > i; ++i) {
-    const __s_size_t new_chunk_size = chunk_size * (i + 1);
+  for (salloc_size_t i = 0; 6 > i; ++i) {
+    const salloc_size_t new_chunk_size = chunk_size * (i + 1);
     printf("\nCREATING NEW CHUNK WITH %zu bytes\n", new_chunk_size);
-    __s_ptr_t new_chunk = salloc(&_slc, new_chunk_size);
+    salloc_ptr_t new_chunk = salloc(&_slc, new_chunk_size);
     salloc_trace(&_slc);
 
     printf("\nFREEING NEW CHUNK\n");

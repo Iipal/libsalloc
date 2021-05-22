@@ -199,14 +199,19 @@ typedef struct __s_salloc_tag {
  * ------------------------
  */
 
+typedef __s_size_t  salloc_size_t;   /* analog of size_t */
+typedef __s_ssize_t salloc_ssize_t;  /* analog of ssize_t */
+typedef __s_uint8_t salloc_buffer_t; /* most convenient static buffer element typedef */
+typedef __s_ptr_t   salloc_ptr_t;    /* public version for most common pointer type */
+
 /**
  * Object to which mapped the static buffer via \c salloc_new, and which tracking all the
  * available memory to use in current static buffer.
  */
 typedef struct s_salloc_t {
-  __s_ptr_t start;  /* start   of available space in static buffer */
-  __s_ptr_t end;    /* end     of available space in static buffer */
-  __s_ptr_t cursor; /* current max of memory used in static buffer */
+  salloc_ptr_t start;  /* start   of available space in static buffer */
+  salloc_ptr_t end;    /* end     of available space in static buffer */
+  salloc_ptr_t cursor; /* current max of memory used in static buffer */
 } salloc_t;
 
 /**
@@ -230,9 +235,9 @@ typedef struct s_salloc_t {
  * Fast shorthand for creating a buffer and \c salloc_t object for s-allocators.
  */
 #define salloc_new_fast(name, capacity) \
-  static __s_uint8_t name##_buff[(capacity)]; \
-  const __s_size_t   name##_buff_capacity = (capacity); \
-  salloc_t           name##_slc           = salloc_new(name##_buff, name##_buff_capacity);
+  static salloc_buffer_t name##_buff[(capacity)]; \
+  const salloc_size_t    name##_buff_capacity = (capacity); \
+  salloc_t               name##_slc = salloc_new(name##_buff, name##_buff_capacity);
 
 /**
  * ------------------
@@ -286,14 +291,14 @@ typedef struct s_salloc_t {
  * --------------------
  */
 
-__sattr_veccall_overload static inline void * __s_nullable salloc(
-    register salloc_t * const restrict __s_nonnull __s, register const __s_size_t __size)
-    __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
-
+__sattr_veccall_overload static inline void * __s_nullable
+    salloc(register salloc_t * const restrict __s_nonnull __s,
+           register const salloc_size_t                   __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
-           register const __s_size_t                      __size,
-           register const __s_size_t                      __nmemb)
+           register const salloc_size_t                   __size,
+           register const salloc_size_t                   __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 __sattr_veccall_overload static inline void
@@ -304,11 +309,11 @@ __sattr_flatten_veccall_overload static inline void
 
 __sattr_veccall_const_overload static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        capacity)
+               register const salloc_size_t                     capacity)
         __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
 __sattr_veccall_const_overload static inline void
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        capacity,
+               register const salloc_size_t                     capacity,
                register salloc_t * const restrict __s)
         __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
 
@@ -319,22 +324,22 @@ __sattr_flatten_veccall_overload static inline void
 __sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s);
 #endif
-__sattr_flatten_veccall_overload static inline __s_size_t
+__sattr_flatten_veccall_overload static inline salloc_size_t
     salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
 
-__sattr_flatten_veccall_overload static inline __s_size_t
+__sattr_flatten_veccall_overload static inline salloc_size_t
     salloc_used(register salloc_t * const restrict __s_nonnull __s);
 
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s);
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size)
+                  register const salloc_size_t                   __size)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size,
-                  register const __s_size_t                      __nmemb)
+                  register const salloc_size_t                   __size,
+                  register const salloc_size_t                   __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 /**
@@ -351,7 +356,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 
 __sattr_veccall_const_overload static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        capacity) {
+               register const salloc_size_t                     capacity) {
   __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)capacity);
   salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
@@ -359,7 +364,7 @@ __sattr_veccall_const_overload static inline salloc_t
 }
 __sattr_veccall_const_overload static inline void
     salloc_new(register const void * const restrict __s_nonnull buff,
-               register const __s_size_t                        capacity,
+               register const salloc_size_t                     capacity,
                register salloc_t * const restrict __s) {
   *__s = salloc_new(buff, capacity);
 }
@@ -460,25 +465,25 @@ __sattr_flatten_veccall_overload static inline __s_size_t
  * |||||||||||||||||||||||||
  */
 
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s) {
   const __s_ssize_t unused = __s->end - __s->cursor;
 
   return unused;
 }
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size) {
+                  register const salloc_size_t                   __size) {
   const __s_size_t  aligned = __st_align_size(__size);
   const __s_ssize_t unused  = salloc_unused(__s);
   const __s_ssize_t out     = unused - aligned - __st_bd_size;
 
   return out;
 }
-__sattr_flatten_veccall_overload static inline __s_ssize_t
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register salloc_t * const restrict __s_nonnull __s,
-                  register const __s_size_t                      __size,
-                  register const __s_size_t                      __nmemb) {
+                  register const salloc_size_t                   __size,
+                  register const salloc_size_t                   __nmemb) {
   const __s_size_t  aligned      = __st_align_size(__size);
   const __s_size_t  require_size = __nmemb * (aligned + __st_bd_size);
   const __s_ssize_t unused       = salloc_unused(__s);
@@ -597,7 +602,7 @@ __sattr_flatten_veccall static inline void * __s_nullable
 }
 __sattr_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
-           register const __s_size_t                      __size) {
+           register const salloc_size_t                   __size) {
   if (!__size) {
     return NULL;
   }
@@ -616,8 +621,8 @@ __sattr_veccall_overload static inline void * __s_nullable
 }
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
-           register const __s_size_t                      __size,
-           register const __s_size_t                      __nmemb) {
+           register const salloc_size_t                   __size,
+           register const salloc_size_t                   __nmemb) {
   const __s_size_t __arr_size = __nmemb * __size;
   return salloc(__s, __arr_size);
 }
@@ -789,35 +794,34 @@ __sattr_flatten_veccall_overload static inline void salloc_trace(void) {
 }
 #  endif
 
-__sattr_flatten_veccall_overload static inline __s_size_t salloc_capacity(void) {
+__sattr_flatten_veccall_overload static inline salloc_size_t salloc_capacity(void) {
   return SALLOC_GDI_BUFFER_SIZE;
 }
 
-__sattr_flatten_veccall_overload static inline __s_size_t salloc_used(void) {
+__sattr_flatten_veccall_overload static inline salloc_size_t salloc_used(void) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_size_t used               = salloc_used(__gdi_slc);
 
   return used;
 }
 
-__sattr_flatten_veccall_overload static inline __s_ssize_t salloc_unused(void) {
+__sattr_flatten_veccall_overload static inline salloc_ssize_t salloc_unused(void) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc);
 
   return unused;
 }
-
-__sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register const __s_size_t __size)
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
+    salloc_unused(register const salloc_size_t __size)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size);
 
   return unused;
 }
-
-__sattr_flatten_veccall_overload static inline __s_ssize_t
-    salloc_unused(register const __s_size_t __size, register const __s_size_t __nmemb)
+__sattr_flatten_veccall_overload static inline salloc_ssize_t
+    salloc_unused(register const salloc_size_t __size,
+                  register const salloc_size_t __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   __s_ssize_t unused            = salloc_unused(__gdi_slc, __size, __nmemb);
@@ -826,7 +830,7 @@ __sattr_flatten_veccall_overload static inline __s_ssize_t
 }
 
 __sattr_flatten_veccall_overload static inline void * __s_nullable
-    salloc(register const __s_size_t __size)
+    salloc(register const salloc_size_t __size)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size);
@@ -834,7 +838,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
   return __ptr;
 }
 __sattr_flatten_veccall_overload static inline void * __s_nullable
-    salloc(register const __s_size_t __size, register const __s_size_t __nmemb)
+    salloc(register const salloc_size_t __size, register const salloc_size_t __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
   void * __ptr                  = salloc(__gdi_slc, __size, __nmemb);

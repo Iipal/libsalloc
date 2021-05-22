@@ -55,8 +55,8 @@ Available attributes macros (most of them are links for attributes description):
  - `__sattr_flatten_veccall`: shortcut for `__sattr_flatten __sattr_veccall`
 
 ## Types
- - `__s_size_t`: analog of `size_t` from `stddef.h`;
- - `__s_ssize_t`: analog of `ssize_t` from `stddef.h`;
+ - `salloc_size_t`: analog of `size_t` from `stddef.h`;
+ - `salloc_ssize_t`: analog of `ssize_t` from `stddef.h`;
  - `__s_uintptr_t`: analog of `uintptr_t` from `stdint.h`;
  - `__s_uint8_t`: analog of `uint8_t` from `stdint.h`;
  - `__s_ptr_t`: most common pointer for internal-use: `__s_uint8_t * restrict`;
@@ -76,16 +76,20 @@ Available attributes macros (most of them are links for attributes description):
 ```
 
 ## Public Types
- - `salloc_t`: General struct for storing available static buffer memory. Commentary from code:
+ - `salloc_size_t`: analog of size_t (`salloc_size_t`);
+ - `salloc_ssize_t`: analog of ssize_t (`salloc_ssize_t`);
+ - `salloc_buffer_t`: most convenient static buffer element type (`__s_uint8_t`);
+ - `salloc_ptr_t`: public version for most common pointer type (`__s_ptr_t`);
+ - `salloc_t`: General structure for storing available static buffer memory. Commentary from code:
 ```c
 /**
  * Object to which mapped the static buffer via \c salloc_new, and which tracking all the
  * available memory to use in current static buffer.
  */
 typedef struct s_salloc_t {
-  __s_ptr_t start;  /* start   of available space in static buffer */
-  __s_ptr_t end;    /* end     of available space in static buffer */
-  __s_ptr_t cursor; /* current max of memory used in static buffer */
+  salloc_ptr_t start;  /* start   of available space in static buffer */
+  salloc_ptr_t end;    /* end     of available space in static buffer */
+  salloc_ptr_t cursor; /* current max of memory used in static buffer */
 } salloc_t;
 ```
 
@@ -93,8 +97,8 @@ typedef struct s_salloc_t {
  - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer because it's also default alignment.
  - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size.
  - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a buffer with size of `capacity` prefixed with `name` and `salloc_t` object for s-allocators. It's creates:
-   - `static __s_uint8_t name##_buff[(capacity)];`
-   - `const __s_size_t name##_buff_capacity = (capacity);`
+   - `static salloc_buffer_t name##_buff[(capacity)];`
+   - `const salloc_size_t name##_buff_capacity = (capacity);`
    - `salloc_t name##_slc = salloc_new(name##_buff, name##_buff_capacity);`
 
 ## Macroses
@@ -122,7 +126,7 @@ typedef struct s_salloc_t {
 
 ***
 
-### `void *salloc(salloc_t *__s, __s_size_t __size)`
+### `void *salloc(salloc_t *__s, salloc_size_t __size)`
 Allocates new static pointer in `__s` with at least `__size` bytes, and returns it.
 
 #### Params
@@ -137,11 +141,11 @@ Allocates new static pointer in `__s` with at least `__size` bytes, and returns 
    - static buffer in `__s` has no available memory;
 
 #### Overloads
- - [`void *salloc(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`](#void-sallocsalloc_t-__s-__s_size_t-__size-__s_size_t-__nmemb): Allocates new static pointer in `__s` for an array of `__nmemb` elements of `__size` bytes each, and returns it.
+ - [`void *salloc(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`](#void-sallocsalloc_t-__s-salloc_size_t-__size-salloc_size_t-__nmemb): Allocates new static pointer in `__s` for an array of `__nmemb` elements of `__size` bytes each, and returns it.
 
 ***
 
-### `void *salloc(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`
+### `void *salloc(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`
 Allocates new static pointer in `__s` for an array of `__nmemb` elements of `__size` bytes each, and returns it.
 
 #### Params
@@ -157,7 +161,7 @@ Allocates new static pointer in `__s` for an array of `__nmemb` elements of `__s
    - static buffer in `__s` has no available memory;
 
 #### Overloads
- - [`void *salloc(salloc_t *__s, __s_size_t __size)`](#void-sallocsalloc_t-__s-__s_size_t-__size): Allocates new static pointer in `__s` with at least `__size` bytes, and returns it.
+ - [`void *salloc(salloc_t *__s, salloc_size_t __size)`](#void-sallocsalloc_t-__s-salloc_size_t-__size): Allocates new static pointer in `__s` with at least `__size` bytes, and returns it.
 
 ***
 
@@ -196,7 +200,7 @@ An additional functional which makes `salloc`-allocators a bit different in use 
 
 ***
 
-### `salloc_t salloc_new(void *buff, __s_size_t capacity)`
+### `salloc_t salloc_new(void *buff, salloc_size_t capacity)`
 Creating a new static buffer to use by `s-allocators` with at most capacity bytes.
 
 #### Params
@@ -207,11 +211,11 @@ Creating a new static buffer to use by `s-allocators` with at most capacity byte
    new `salloc_t` object to work with `s-allocators`.
 
 #### Overloads
- - [`salloc_new(void *buff, __s_size_t capacity, salloc_t *__s)`](#salloc_newvoid-buff-__s_size_t-capacity-salloc_t-__s): Instead or creating new object, you can just give it as 3-rd argument and it will re-initialized with given `buff` and `capacity`.
+ - [`salloc_new(void *buff, salloc_size_t capacity, salloc_t *__s)`](#salloc_newvoid-buff-salloc_size_t-capacity-salloc_t-__s): Instead or creating new object, you can just give it as 3-rd argument and it will re-initialized with given `buff` and `capacity`.
 
 ***
 
-### `salloc_new(void *buff, __s_size_t capacity, salloc_t *__s)`
+### `salloc_new(void *buff, salloc_size_t capacity, salloc_t *__s)`
 Creating a new static buffer to use by `s-allocators` with at most capacity bytes at give `__s` object.
 
 #### Params
@@ -220,7 +224,7 @@ Creating a new static buffer to use by `s-allocators` with at most capacity byte
  - `__s`: a pointer to `salloc_t` object
 
 #### Overloads
- - [`salloc_t salloc_new(void *buff, __s_size_t capacity)`](#salloc_t-salloc_newvoid-buff-__s_size_t-capacity): The base, in `__s` will be stored return value of this function.
+ - [`salloc_t salloc_new(void *buff, salloc_size_t capacity)`](#salloc_t-salloc_newvoid-buff-salloc_size_t-capacity): The base, in `__s` will be stored return value of this function.
 
 ***
 
@@ -249,7 +253,7 @@ Just prints \ trace all the pointers stored in `salloc_t` object.
 
 ***
 
-### `__s_size_t salloc_capacity(salloc_t *__s)`
+### `salloc_size_t salloc_capacity(salloc_t *__s)`
 Returns size\capacity of static buffer.
 
 #### Params
@@ -260,7 +264,7 @@ capacity of static buffer mapped in `__s`.
 
 ***
 
-### `__s_size_t salloc_used(salloc_t *__s)`
+### `salloc_size_t salloc_used(salloc_t *__s)`
 Returns size of used memory in static buffer.
 
 #### Params
@@ -272,7 +276,7 @@ Returns size of used memory in static buffer.
 
 ***
 
-### `__s_ssize_t salloc_unused(salloc_t *__s)`
+### `salloc_ssize_t salloc_unused(salloc_t *__s)`
 Returns size of unused memory in static buffer.
 
 #### Params
@@ -284,12 +288,12 @@ Returns size of unused memory in static buffer.
  - __Negative__: somehow in static buffer are more allocated memory than buffer can fit.
 
 #### Overloads
- - [`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size): Checks is in `__s` is enough space to allocate new pointer with at least `__size` bytes.
- - [`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size-__s_size_t-__nmemb): Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at least `__size` bytes each.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size): Checks is in `__s` is enough space to allocate new pointer with at least `__size` bytes.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size-salloc_size_t-__nmemb): Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at least `__size` bytes each.
 
 ***
 
-### `__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size)`
+### `salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size)`
 Checks is in `__s` is enough space to allocate new pointer with at least `__size` bytes.
 
 #### Params
@@ -302,12 +306,12 @@ Checks is in `__s` is enough space to allocate new pointer with at least `__size
  - __Positive__: available space after s-allocation of the new pointer with at least `__size` bytes.
 
 #### Overloads
- - [`__s_ssize_t salloc_unused(salloc_t *__s)`](#__s_ssize_t-salloc_unusedsalloc_t-__s): Returns size of unused memory in static buffer.
- - [`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size-__s_size_t-__nmemb): Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at least `__size` bytes each.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s): Returns size of unused memory in static buffer.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size-salloc_size_t-__nmemb): Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at least `__size` bytes each.
 
 ***
 
-### `__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`
+### `salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`
 Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at least `__size` bytes each.
 
 #### Params
@@ -323,8 +327,8 @@ Checks is in `__s` is enough space to allocate of `__nmemb` new pointers with at
 
 
 #### Overloads
- - [`__s_ssize_t salloc_unused(salloc_t *__s)`](#__s_ssize_t-salloc_unusedsalloc_t-__s): Returns size of unused memory in static buffer.
- - [`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size): Checks is in `__s` is enough space to allocate new pointer with at least `__size` bytes.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s): Returns size of unused memory in static buffer.
+ - [`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size): Checks is in `__s` is enough space to allocate new pointer with at least `__size` bytes.
 
 ***
 ***
@@ -358,13 +362,13 @@ Pointer to the global `salloc_t` object.
 
 ***
 
-### `void *salloc(__s_size_t __size)`
-[`void *salloc(salloc_t *__s, __s_size_t __size)`](#void-sallocsalloc_t-__s-__s_size_t-__size)
+### `void *salloc(salloc_size_t __size)`
+[`void *salloc(salloc_t *__s, salloc_size_t __size)`](#void-sallocsalloc_t-__s-salloc_size_t-__size)
 
 ***
 
-### `void *salloc(__s_size_t __size, __s_size_t __nmemb)`
-[`void *salloc(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`](#void-sallocsalloc_t-__s-__s_size_t-__size-__s_size_t-__nmemb)
+### `void *salloc(salloc_size_t __size, salloc_size_t __nmemb)`
+[`void *salloc(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`](#void-sallocsalloc_t-__s-salloc_size_t-__size-salloc_size_t-__nmemb)
 
 ***
 
@@ -392,23 +396,23 @@ A `SALLOC_GDI_BUFFER_SIZE` value.
 
 ***
 
-### `__s_size_t salloc_used()`
-[`__s_size_t salloc_used(salloc_t *__s)`](#__s_size_t-salloc_usedsalloc_t-__s)
+### `salloc_size_t salloc_used()`
+[`salloc_size_t salloc_used(salloc_t *__s)`](#salloc_size_t-salloc_usedsalloc_t-__s)
 
 ***
 
-### `__s_ssize_t salloc_unused()`
-[`__s_ssize_t salloc_unused(salloc_t *__s)`](#__s_ssize_t-salloc_unusedsalloc_t-__s)
+### `salloc_ssize_t salloc_unused()`
+[`salloc_ssize_t salloc_unused(salloc_t *__s)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s)
 
 ***
 
-### `__s_ssize_t salloc_unused(__s_size_t __size)`
-[`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size)
+### `salloc_ssize_t salloc_unused(salloc_size_t __size)`
+[`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size)
 
 ***
 
-### `__s_ssize_t salloc_unused(__s_size_t __size, __s_size_t __nmemb)`
-[`__s_ssize_t salloc_unused(salloc_t *__s, __s_size_t __size, __s_size_t __nmemb)`](#__s_ssize_t-salloc_unusedsalloc_t-__s-__s_size_t-__size-__s_size_t-__nmemb)
+### `salloc_ssize_t salloc_unused(salloc_size_t __size, salloc_size_t __nmemb)`
+[`salloc_ssize_t salloc_unused(salloc_t *__s, salloc_size_t __size, salloc_size_t __nmemb)`](#salloc_ssize_t-salloc_unusedsalloc_t-__s-salloc_size_t-__size-salloc_size_t-__nmemb)
 
 ***
 
