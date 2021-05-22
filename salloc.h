@@ -113,12 +113,6 @@
 #define __sattr_flatten_veccall_overload __sattr_flatten __sattr_veccall __sattr_overload
 #define __sattr_flatten_veccall          __sattr_flatten __sattr_veccall
 
-#ifndef NULL
-#  define __sis_salloc_null_defined__ 1
-
-#  define NULL ((void *)0)
-#endif
-
 /**
  * ----------------
  * TYPES DEFINITION
@@ -161,36 +155,35 @@ typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but co
  * Memory mapping with bidirectional implicit free list or Boundary Tags.
  *
  * Example:
- * By calling salloc with \c size of 48 bytes it actually allocating \c size +
+ * By calling salloc with \c size of 128 bytes it actually allocating \c size +
  * \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
  *
- * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **header**
- * [                 your 48 bytes of memory                 ] **payload**
- * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **footer**
+ * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **header**
+ * [                start of available to use                ] <- salloc returns this
+ * [                        1024 bytes                       ] **payload**
+ * [             of memory in static memory buffer           ]
+ * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **footer**
  */
 typedef struct __s_salloc_tag {
 #if __S_WORDSIZE == 64
 #  define __S_TAG_ALIGN_BITS \
     3 /* if we on 64bit system then default alignment of (sizeof(void*)*2) will be \
-         equal to 16 bytes(alwayz: ...1111 0000). This mean that 4 last bits are \
-         available to use, and 1 of them is for busy indicator, so 3 for alignment then \
-       */
+         equal to 16 bytes(alwayz: ...1111 0000). This means that 4 last bits are \
+         available to use. 1 of them is for busy indicator, and 3 for alignment */
 #  define __S_TAG_SIZE_BITS 60 /** value aligned by 16 always took only 60 bits */
 #  define __S_TAG_BUSY_BITS 1  /** busy indicator */
 #else
 #  define __S_TAG_ALIGN_BITS \
     2 /* if we on 32bit system then default alignment of (sizeof(void*)*2) will be equal \
          to 8(alwayz: ...1111 1000), not 16, so this mean that only 3 last bits are \
-         available to use, \
-         and 1 of them is for busy indicator, so 2 for alignment then */
+         available to use. 1 of them is for busy indicator, so 2 for alignment then */
 #  define __S_TAG_SIZE_BITS 29 /** value aligned by 8 always took only 29 bits */
 #  define __S_TAG_BUSY_BITS 1  /** busy indicator **/
 #endif
 
-  __s_uint8_t __alignment : __S_TAG_ALIGN_BITS __sattr_munused; /* as it is */
-
   __s_uintptr_t size : __S_TAG_SIZE_BITS; /* size of current pointer */
-  __s_uint8_t   busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
+  __s_uint8_t __alignment : __S_TAG_ALIGN_BITS __sattr_munused; /* as it is */
+  __s_uint8_t busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
 } __sattr_packed __s_tag_t;
 
 /**
@@ -247,6 +240,13 @@ typedef struct s_salloc_t {
 
 #ifndef __sis_salloc_macroses_defined__
 #  define __sis_salloc_macroses_defined__ 1
+
+#  ifndef NULL
+#    define __sis_salloc_null_defined__ 1
+
+#    define NULL ((void *)0)
+#  endif
+
 /**
  * Most convenient type conversions
  *
@@ -264,7 +264,7 @@ typedef struct s_salloc_t {
  */
 
 #  define __st_init(size, busy) \
-    { 0 /* __alignment */, (size), (busy) }
+    { (size), 0 /* __alignment */, (busy) }
 
 #  define __st_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
 #  define __st_align_size(x) \
@@ -324,6 +324,7 @@ __sattr_flatten_veccall_overload static inline void
 __sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s);
 #endif
+
 __sattr_flatten_veccall_overload static inline salloc_size_t
     salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
 

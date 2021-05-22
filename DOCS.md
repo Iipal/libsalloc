@@ -66,12 +66,15 @@ Available attributes macros (most of them are links for attributes description):
 /**
  * Memory mapping with bidirectional implicit free list or Boundary Tags.
  *
- * By calling salloc with \c size of 48 bytes it actually allocating \c size +
+ * Example:
+ * By calling salloc with \c size of 128 bytes it actually allocating \c size +
  * \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
  *
- * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **header**
- * [                your 48 bytes of memory                ] **payload**
- * [ __s_tag_t with ->size == 48 and by default ->busy == 1] **footer**
+ * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **header**
+ * [                start of available to use                ] <- salloc returns this
+ * [                        1024 bytes                       ] **payload**
+ * [             of memory in static memory buffer           ]
+ * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **footer**
  */
 ```
 
