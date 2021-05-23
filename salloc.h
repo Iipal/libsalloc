@@ -362,6 +362,8 @@ typedef struct s_salloc_t {
  * --------------------
  */
 
+/** S-Allocators */
+
 __sattr_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const salloc_size_t                   __size)
@@ -378,6 +380,8 @@ __sattr_veccall_overload static inline void
 __sattr_flatten_veccall_overload static inline void
     sfree(register void * restrict __s_nonnull __ptr);
 
+/** Additional functional */
+
 __sattr_veccall_const_overload static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const salloc_size_t                     capacity)
@@ -387,6 +391,19 @@ __sattr_veccall_const_overload static inline void
                register const salloc_size_t                     capacity,
                register salloc_t * const restrict __s)
         __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
+
+__sattr_flatten_veccall_overload static inline salloc_t * __s_nonnull
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register salloc_t * const restrict __s_nonnull __src);
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register void * const restrict __s_nonnull     __src,
+                const salloc_size_t                            __nbytes);
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register void * const restrict __s_nonnull     __src,
+                const salloc_size_t                            __nbytes,
+                const salloc_size_t                            __offset);
 
 __sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
@@ -442,6 +459,67 @@ __sattr_veccall_const_overload static inline void
 }
 
 /**
+ * |||||||||||||||||||||||
+ * SALLOC_COPY DEFINITIONS
+ * |||||||||||||||||||||||
+ */
+
+__sattr_flatten_veccall_overload static inline salloc_t * __s_nonnull
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register salloc_t * const restrict __s_nonnull __src) {
+  __s_ptr_t __src_iptr = __src->start;
+  __s_ptr_t __dst_iptr = __dst->start;
+
+  __dst->cursor = __dst->start;
+
+  while (__dst_iptr < __dst->end && __src_iptr < __src->cursor) {
+    __s_tag_t * restrict __src_iptr_tag     = __s2c_tag(__src_iptr);
+    const __s_size_t  __src_iptr_copy_size  = __src_iptr_tag->size + __st_bd_size;
+    const __s_ssize_t __dst_available_space = salloc_unused(__dst);
+
+    if (0 < __dst_available_space &&
+        __s2c_uiptr(__dst_available_space) >= __src_iptr_copy_size) {
+      for (__s_size_t i = 0; __src_iptr_copy_size > i; ++i) {
+        *__dst_iptr++ = *__src_iptr++;
+      }
+    } else {
+      break;
+    }
+
+    __dst->cursor = __dst_iptr;
+  }
+
+  return __dst;
+}
+
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register void * const restrict __s_nonnull     __src,
+                const salloc_size_t                            __nbytes) {
+  return salloc_copy(__dst, __src, __nbytes, 0);
+}
+
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc_copy(register salloc_t * const restrict __s_nonnull __dst,
+                register void * const restrict __s_nonnull     __src,
+                const salloc_size_t                            __nbytes,
+                const salloc_size_t                            __offset) {
+  const __s_ssize_t __dst_available_memory = __dst->end - (__dst->start + __offset);
+  if (0 >= __dst_available_memory || __nbytes > __s2c_uiptr(__dst_available_memory)) {
+    return NULL;
+  }
+
+  __s_ptr_t        __s_iptr   = __dst->start;
+  __s_ptr_t        __src_iptr = __s2c_ptr(__src);
+  const __s_cptr_t __src_end  = __s2c_ptr(__src) + __nbytes;
+  while (__src_iptr <= __src_end) {
+    *__s_iptr++ = *__src_iptr++;
+  }
+
+  return __dst->start;
+}
+
+/**
  * |||||||||||||||||||||||||
  * SALLOC_DELETE DEFINITIONS
  * |||||||||||||||||||||||||
@@ -466,7 +544,7 @@ __sattr_veccall_overload static inline void
 
   printf("%s:\n", __FUNCTION__);
 
-  __s_size_t blocks_count = 0;
+  __s_size_t chunks_count = 0;
   while (iptr < cursor) {
     __s_tag_t * iptr_header = __s2c_tag(iptr);
     __s_tag_t * iptr_footer = __s2c_tag(iptr + iptr_header->size + __st_size);
@@ -480,7 +558,7 @@ __sattr_veccall_overload static inline void
            iptr_footer->size);
 
     iptr = __s2c_ptr(iptr_footer) + __st_size;
-    ++blocks_count;
+    ++chunks_count;
   }
 
   const __s_ssize_t unused   = salloc_unused(__s);
@@ -494,14 +572,15 @@ __sattr_veccall_overload static inline void
   printf("  used [%p ... %p] %zu (%zu)\n",
          __s->start,
          cursor,
-         used - (blocks_count * __st_bd_size),
+         used - (chunks_count * __st_bd_size),
          used);
   printf("unused [%p ... %p] %zu\n"
-         "capacity: %zu;\n",
+         "capacity: %zu; chunks: %zu;\n",
          cursor,
          __s->end,
          unused,
-         capacity);
+         capacity,
+         chunks_count);
 }
 #endif
 
