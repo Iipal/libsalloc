@@ -19,26 +19,71 @@ Because in code with time it's makes everything harder to navigate. Still it's d
 
 ## Introduction
 
+***
+
+### Required a clang compiler
+
+This implementation are highly depended on `clang` compiler because of it's [attributes](#attributes), such as `overloadable`. Also it's generates better AVX\SSE assembly than gcc.
+
+***
+
+### AVOID ANY KIND OF VLA
+I mean it! Even this code can hurt all the optimizations, also it's will not even compile:
+```c
+#include "../salloc.h"
+
+const salloc_size_t vla = 32;
+
+int main(void) { salloc_new_fast(, vla); }
+```
+
+You will see something like this error:
+```bash
+test/vla.c:5:18: error: variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]
+int main(void) { salloc_new_fast(, vla); }
+                 ^
+test/../salloc.h:302:32: note: expanded from macro 'salloc_new_fast'
+  static salloc_buffer_t name##_buff[(capacity)]; \
+```
+
+***
+
+### Internal un-definition
+
 Almost every internal-use-only [macroses](#macroses)\\[attributes](#attributes)\\[types](#types), and even some functions are specified with prefix `__s`, and almost everything are un-defined(with `#undef` of course) at the end of `salloc.h`, but still [types](#types) and function can't be un-defined, because of this - it's not recommended to use anything from `salloc.h` with prefix `__s` outside of it.
 
+And yes __anyway__ can use it outside of `salloc.h` via some [configurations](#configuration)
+
+***
+
+### Other
 
 Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf) document, which explains everything about most common malloc-like allocator implementations.
+
+***
 
 ## Configuration
 
 You can specify a few settings before include `salloc.h`:
 
+ - `SALLOC_DEFAULT_ALIGNMENT`: You can manually specify the default alignment of the size of each pointer. Default: `(sizeof(void *) * 2)`.
+ - `SALLOC_DEBUG`: Enables `salloc_trace` function, `SALLOC_AFTERUSE_INTERNAL_MACROS`, and `SALLOC_AFTERUSE_INTERNAL_ATTRS` and includes `stdio.h`.
  - `SALLOC_AFTERUSE_INTERNAL_MACROS`: for use [internal macroses](#macroses) outside of `salloc.h` (This setting will not un-define them).
  - `SALLOC_AFTERUSE_INTERNAL_ATTR`: for use [attributes](#attributes) outside of `salloc.h`.
  - `SALLOC_NULLABILITY`: enables clang [nullability checks](https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They are can still be accessible if `SALLOC_AFTERUSE_INTERNAL_MACROS` is defined.
- - `SALLOC_DEBUG`: enables `salloc_trace` function and includes `stdio.h`.
  - `SALLOC_GDI_BUFFER`: more about this setting [here](#gdi).
+
+Example:
+```c
+#define SALLOC_DEFAULT_ALIGNMENT 1337
+#define SALLOC_DEBUG
+#define SALLOC_NULLABILITY
+#include "salloc.h"
+```
 
 ## Attributes
 
-This implementation are highly depended on `clang` compiler because of it's attributes, such as `overloadable`.
-
-Available attributes macros (most of them are links for attributes description):
+Available attributes macroses (most of them are links for attributes description):
  - [__sattr_diagnose_if](https://clang.llvm.org/docs/AttributeReference.html#diagnose-if)
  - `__sattr_diagnose_align(x, align)`: uses `__sattr_diagnose_if` to check is given `x`-value bigger or aligned by `align`.
  - [__sattr_veccall](https://clang.llvm.org/docs/AttributeReference.html#vectorcall)
@@ -55,8 +100,8 @@ Available attributes macros (most of them are links for attributes description):
  - `__sattr_flatten_veccall`: shortcut for `__sattr_flatten __sattr_veccall`
 
 ## Types
- - `salloc_size_t`: analog of `size_t` from `stddef.h`;
- - `salloc_ssize_t`: analog of `ssize_t` from `stddef.h`;
+ - `__s_size_t`: analog of `size_t` from `stddef.h`;
+ - `__s_ssize_t`: analog of `ssize_t` from `stddef.h`;
  - `__s_uintptr_t`: analog of `uintptr_t` from `stdint.h`;
  - `__s_uint8_t`: analog of `uint8_t` from `stdint.h`;
  - `__s_ptr_t`: most common pointer for internal-use: `__s_uint8_t * restrict`;
@@ -79,8 +124,8 @@ Available attributes macros (most of them are links for attributes description):
 ```
 
 ## Public Types
- - `salloc_size_t`: analog of size_t (`salloc_size_t`);
- - `salloc_ssize_t`: analog of ssize_t (`salloc_ssize_t`);
+ - `salloc_size_t`: analog of size_t (`__s_size_t`);
+ - `salloc_ssize_t`: analog of ssize_t (`__s_ssize_t`);
  - `salloc_buffer_t`: most convenient static buffer element type (`__s_uint8_t`);
  - `salloc_ptr_t`: public version for most common pointer type (`__s_ptr_t`);
  - `salloc_t`: General structure for storing available static buffer memory. Commentary from code:
@@ -97,8 +142,9 @@ typedef struct s_salloc_t {
 ```
 
 ## Public Macroses
- - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer because it's also default alignment.
- - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size.
+ - `SALLOC_EACH_ALLOC_OVERHEAD`: Size in bytes how much each new allocation will take memory in static buffer for mapping via Boundary Tags.
+ - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer. (Doesn't count `SALLOC_EACH_ALLOC_OVERHEAD`)
+ - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size. (Counts `SALLOC_EACH_ALLOC_OVERHEAD`)
  - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a buffer with size of `capacity` prefixed with `name` and `salloc_t` object for s-allocators. It's creates:
    - `static salloc_buffer_t name##_buff[(capacity)];`
    - `const salloc_size_t name##_buff_capacity = (capacity);`
@@ -113,21 +159,19 @@ typedef struct s_salloc_t {
 
  - `__st`: For work with memory Boundary Tags(`__s_tag_t`). `__st` prefix stands as shortcut for `__salloc_tag`;
    - `__st_init(size, busy)`: Initializer for `__s_tag_t`.
-   - `__st_align_default`: Shortcut for `SALLOC_MIN_ALLOC_SIZE` which is default alignment;
-   - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`; Example: By default, on x86_64, 8 will aligned to 16 bytes. 24->32 and so on. That means that default `SALLOC_MIN_BUFFER_SIZE` value in most cases is equal to 32.
+   - `__st_align_default`: Shortcut for `SALLOC_DEFAULT_ALIGNMENT`.
+   - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`. Example: By default, on x86_64, 8 will aligned to 16 bytes. 24->32 and so on. That means that default `SALLOC_MIN_BUFFER_SIZE` value in most cases is equal to 32.
    - `__st_size`: Size of one boundary tag.
-   - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional.
-   - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag data(`__s_tag_t*`) from the `void* x` .
+   - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional. Equals to `SALLOC_EACH_ALLOC_OVERHEAD`.
+   - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag meta-data(`__s_tag_t*`) from the `void* x` .
    - `__st_tag_get_ptr(x)`: Used to return a valid pointer to user. Just like [s-allocators](#s-allocators) do.
-   - `__st_busy`: constant 1. Used to indicate is memory chunk is busy (not freed) or not.
+   - `__st_busy`: constant 1. Used to indicate is memory chunk is busy.
    - `__st_not_busy`: constant 0.
-   - `__st_get_busy(x)`: gets from `x` busy-indicator (perhaps that `x` is pointer type).
-   - `__st_get_size(x)`: gets from `x` size of memory chunk (perhaps that `x` is pointer type).
-   - `__st_is_free(x) !__st_get_busy(x)`: Returns true is memory chunk was freed.
+   - `__st_get_busy(x)`: gets from `x` busy-indicator (assumed that `x` is a pointer-type).
+   - `__st_get_size(x)`: gets from `x` size of memory chunk (assumed that `x` is a pointer-type).
+   - `__st_is_free(x) !__st_get_busy(x)`: Returns true is memory chunk was freed (assumed that `x` is a pointer-type).
 
 ## S-Allocators
-
-***
 
 ### `void *salloc(salloc_t *__s, salloc_size_t __size)`
 Allocates new static pointer in `__s` with at least `__size` bytes, and returns it.
@@ -390,7 +434,7 @@ Pointer to the global `salloc_t` object.
 
 ***
 
-### `salloc_capacity()`
+### `salloc_size_t salloc_capacity()`
 
 Returns capacity of global static buffer.
 
