@@ -10,10 +10,40 @@
  * -------------
  */
 
+#ifndef SALLOC_DEFAULT_ALIGNMENT
+/**
+ * You can manually specify the default alignment of the size of each pointer.
+ */
+#  define SALLOC_DEFAULT_ALIGNMENT (sizeof(void *) * 2)
+#endif
+
+/**
+ * Enables \c salloc_trace function, \c SALLOC_AFTERUSE_INTERNAL_MACROS, and
+ * \c SALLOC_AFTERUSE_INTERNAL_ATTRS and includes \c stdio.h.
+ */
+#ifdef SALLOC_DEBUG
+#  define __sis_salloc_debug_defined__ 1
+
+#  include <stdio.h>
+
+#  ifndef SALLOC_AFTERUSE_INTERNAL_MACROS
+#    define SALLOC_AFTERUSE_INTERNAL_MACROS
+#  endif
+#  ifndef SALLOC_AFTERUSE_INTERNAL_ATTR
+#    define SALLOC_AFTERUSE_INTERNAL_ATTR
+#  endif
+#endif
+
+/**
+ * For use internal-purpose-only macroses outside of salloc.h
+ */
 #ifdef SALLOC_AFTERUSE_INTERNAL_MACROS
 #  define __sis_salloc_afteruse_macros_defined__ 1
 #endif
 
+/**
+ * For use internal-purpose-only attributes outside of salloc.h
+ */
 #ifdef SALLOC_AFTERUSE_INTERNAL_ATTR
 #  define __sis_salloc_afteruse_attrs_defined__ 1
 #endif
@@ -25,14 +55,6 @@
  * are can still be accessible if \c SALLOC_AFTERUSE_INTERNAL_MACROS is defined.
  */
 #  define __sis_salloc_nullability_defined__ 1
-#endif
-
-#ifdef SALLOC_DEBUG
-/**
- * Enables \c salloc_trace function and includes \c stdio.h.
- */
-#  define __sis_salloc_debug_defined__ 1
-#  include <stdio.h>
 #endif
 
 #ifdef SALLOC_GDI_BUFFER
@@ -257,15 +279,21 @@ typedef struct s_salloc_t {
  */
 
 /**
- * \brief Minium allocation size in static buffer because it's also default alignment.
+ * \brief Size in bytes how much each new allocation will take memory in static buffer for
+ * mapping via Boundary Tags.
  */
-#define SALLOC_MIN_ALLOC_SIZE (sizeof(void *) * 2)
+#define SALLOC_EACH_ALLOC_OVERHEAD (sizeof(__s_tag_t) * 2)
+
+/**
+ * \brief Minium allocation size in static buffer.
+ */
+#define SALLOC_MIN_ALLOC_SIZE SALLOC_DEFAULT_ALIGNMENT
 
 /**
  * \brief Minimum required memory in static buffer for at least 1 pointer with at least
  * \c SALLOC_MIN_ALLOC_SIZE bytes size.
  */
-#define SALLOC_MIN_BUFFER_SIZE ((sizeof(__s_tag_t) * 2) + SALLOC_MIN_ALLOC_SIZE)
+#define SALLOC_MIN_BUFFER_SIZE (SALLOC_EACH_ALLOC_OVERHEAD + SALLOC_MIN_ALLOC_SIZE)
 
 /**
  * Fast shorthand for creating a buffer and \c salloc_t object for s-allocators.
@@ -309,12 +337,12 @@ typedef struct s_salloc_t {
 #  define __st_init(size, busy) \
     { (size), 0 /* __alignment */, (busy) }
 
-#  define __st_align_default __s2c_uiptr(SALLOC_MIN_ALLOC_SIZE)
+#  define __st_align_default __s2c_uiptr(SALLOC_DEFAULT_ALIGNMENT)
 #  define __st_align_size(x) \
     (((x) % __st_align_default) ? ((x) + ((~(x) & (__st_align_default - 1)) + 1)) : (x))
 
 #  define __st_size    __s2c_uiptr(sizeof(__s_tag_t))
-#  define __st_bd_size (__st_size * 2) // bd stands for bi-directional
+#  define __st_bd_size SALLOC_EACH_ALLOC_OVERHEAD // bd stands for bi-directional
 
 #  define __st_ptr_get_tag(x) __s2c_tag(__s2c_ptr(x) - __st_size)
 #  define __st_tag_get_ptr(x) (__s2c_ptr(x) + __st_size)
@@ -520,7 +548,7 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
                   register const salloc_size_t                   __size) {
   const __s_size_t  aligned = __st_align_size(__size);
   const __s_ssize_t unused  = salloc_unused(__s);
-  const __s_ssize_t out     = unused - aligned - __st_bd_size;
+  const __s_ssize_t out     = unused - aligned - SALLOC_EACH_ALLOC_OVERHEAD;
 
   return out;
 }
@@ -529,7 +557,7 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
                   register const salloc_size_t                   __size,
                   register const salloc_size_t                   __nmemb) {
   const __s_size_t  aligned      = __st_align_size(__size);
-  const __s_size_t  require_size = __nmemb * (aligned + __st_bd_size);
+  const __s_size_t  require_size = __nmemb * (aligned + SALLOC_EACH_ALLOC_OVERHEAD);
   const __s_ssize_t unused       = salloc_unused(__s);
   const __s_ssize_t out          = unused - require_size;
 
