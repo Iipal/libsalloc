@@ -5,7 +5,26 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(gdb) Launch",
+      "name": "launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/debug",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "debug & launch",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/debug",
