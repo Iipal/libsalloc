@@ -915,9 +915,46 @@ __sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_get_gdi_buff
   return &__slc;
 }
 
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc(register const salloc_size_t __size)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  return salloc(__gdi_slc, __size);
+}
+__sattr_flatten_veccall_overload static inline void * __s_nullable
+    salloc(register const salloc_size_t __size, register const salloc_size_t __nmemb)
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  return salloc(__gdi_slc, __size, __nmemb);
+}
+
+__sattr_flatten_veccall_overload static inline void
+    sfree_gdi(register void * restrict const __gdi_ptr) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  sfree(__gdi_slc, __gdi_ptr);
+}
+
+__sattr_flatten_veccall_overload static inline salloc_t *
+    salloc_copy(register salloc_t * const restrict __s_nonnull __src) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  return salloc_copy(__gdi_slc, __src);
+}
+__sattr_flatten_veccall_overload static inline salloc_t *
+    salloc_copy(register void * const restrict __s_nonnull __src,
+                const salloc_size_t                        __nbytes) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  return salloc_copy(__gdi_slc, __src, __nbytes);
+}
+__sattr_flatten_veccall_overload static inline salloc_t *
+    salloc_copy(register void * const restrict __s_nonnull __src,
+                const salloc_size_t                        __nbytes,
+                const salloc_size_t                        __offset) {
+  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
+  return salloc_copy(__gdi_slc, __src, __nbytes, __offset);
+}
+
 __sattr_flatten_veccall_overload static inline void salloc_delete(void) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-
   salloc_delete(__gdi_slc);
 }
 
@@ -934,57 +971,25 @@ __sattr_flatten_veccall_overload static inline salloc_size_t salloc_capacity(voi
 
 __sattr_flatten_veccall_overload static inline salloc_size_t salloc_used(void) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  __s_size_t used               = salloc_used(__gdi_slc);
-
-  return used;
+  return salloc_used(__gdi_slc);
 }
 
 __sattr_flatten_veccall_overload static inline salloc_ssize_t salloc_unused(void) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  __s_ssize_t unused            = salloc_unused(__gdi_slc);
-
-  return unused;
+  return salloc_unused(__gdi_slc);
 }
 __sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register const salloc_size_t __size)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  __s_ssize_t unused            = salloc_unused(__gdi_slc, __size);
-
-  return unused;
+  return salloc_unused(__gdi_slc, __size);
 }
 __sattr_flatten_veccall_overload static inline salloc_ssize_t
     salloc_unused(register const salloc_size_t __size,
                   register const salloc_size_t __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
   salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  __s_ssize_t unused            = salloc_unused(__gdi_slc, __size, __nmemb);
-
-  return unused;
-}
-
-__sattr_flatten_veccall_overload static inline void * __s_nullable
-    salloc(register const salloc_size_t __size)
-        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
-  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  void * __ptr                  = salloc(__gdi_slc, __size);
-
-  return __ptr;
-}
-__sattr_flatten_veccall_overload static inline void * __s_nullable
-    salloc(register const salloc_size_t __size, register const salloc_size_t __nmemb)
-        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) {
-  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-  void * __ptr                  = salloc(__gdi_slc, __size, __nmemb);
-
-  return __ptr;
-}
-
-__sattr_flatten_veccall_overload static inline void
-    sfree_gdi(register void * restrict const __gdi_ptr) {
-  salloc_t * restrict __gdi_slc = __salloc_get_gdi_buffer();
-
-  sfree(__gdi_slc, __gdi_ptr);
+  return salloc_unused(__gdi_slc, __size, __nmemb);
 }
 
 #endif
