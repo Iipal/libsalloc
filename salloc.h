@@ -199,10 +199,10 @@
 
 #if __S_WORDSIZE == 64
 typedef unsigned long int __s_uintptr_t; /* salloc analog of uintptr_t; x64 */
-typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64 */
+typedef long int          __s_ssize_t;   /* salloc analog of ssize_t; x64   */
 #else
 typedef unsigned int  __s_uintptr_t; /* salloc analog of uintptr_t; x32 */
-typedef int           __s_ssize_t;   /* salloc analog of ssize_t; x32 */
+typedef int           __s_ssize_t;   /* salloc analog of ssize_t; x32   */
 #endif
 
 #ifdef __SIZE_TYPE__
@@ -257,9 +257,9 @@ typedef struct __s_salloc_tag {
  * ------------------------
  */
 
-typedef __s_size_t  salloc_size_t;   /* analog of size_t */
+typedef __s_size_t  salloc_size_t;   /* analog of  size_t */
 typedef __s_ssize_t salloc_ssize_t;  /* analog of ssize_t */
-typedef __s_uint8_t salloc_buffer_t; /* most convenient static buffer element typedef */
+typedef __s_uint8_t salloc_buffer_t; /* most convenient static buffer element  type */
 typedef __s_ptr_t   salloc_ptr_t;    /* public version for most common pointer type */
 
 /**
@@ -389,7 +389,7 @@ __sattr_veccall_const_overload static inline salloc_t
 __sattr_veccall_const_overload static inline void
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const salloc_size_t                     capacity,
-               register salloc_t * const restrict __s)
+               register salloc_t * const restrict __s_nonnull   __s)
         __sattr_diagnose_align(capacity, SALLOC_MIN_BUFFER_SIZE);
 
 __sattr_flatten_veccall_overload static inline salloc_t * __s_nonnull
@@ -446,7 +446,7 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
 __sattr_veccall_const_overload static inline salloc_t
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const salloc_size_t                     capacity) {
-  __s_ptr_t buff_end = (__s2c_ptr(buff) + (__s_uintptr_t)capacity);
+  __s_ptr_t buff_end = (__s2c_ptr(buff) + capacity);
   salloc_t  out      = (salloc_t){__s2c_ptr(buff), buff_end, __s2c_ptr(buff)};
 
   return out;
@@ -454,7 +454,7 @@ __sattr_veccall_const_overload static inline salloc_t
 __sattr_veccall_const_overload static inline void
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const salloc_size_t                     capacity,
-               register salloc_t * const restrict __s) {
+               register salloc_t * const restrict __s_nonnull   __s) {
   *__s = salloc_new(buff, capacity);
 }
 
@@ -761,7 +761,7 @@ __sattr_veccall_overload static inline void * __s_nullable
   register const __s_uintptr_t aligned_size = __st_align_size(__size);
   register void * restrict out              = NULL;
 
-  if (__s->start < __s->cursor) {
+  if (__s->start != __s->cursor) {
     out = __salloc_find_best_chunk(__s, aligned_size);
   }
   if (!out) {
@@ -775,7 +775,9 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
            register const salloc_size_t                   __size,
            register const salloc_size_t                   __nmemb) {
   const __s_size_t __arr_size = __nmemb * __size;
-  return salloc(__s, __arr_size);
+  void *           out        = salloc(__s, __arr_size);
+
+  return out;
 }
 
 /**
@@ -823,11 +825,7 @@ __sattr_veccall_overload static inline void
           register void * restrict __s_nonnull           __ptr) {
   sfree(__ptr);
 
-  const __s_cptr_t __s_start  = __s->start;
-  const __s_cptr_t __s_cursor = __s->cursor;
-
-  __s_tag_t * __ptr_tag = __st_ptr_get_tag(__ptr);
-  __s_ptr_t   __iptr    = __s2c_ptr(__ptr_tag);
+  __s_ptr_t __iptr = __st_ptr_get_tag(__ptr);
 
   /**
    * Left-side memory fragmentation.
@@ -836,15 +834,15 @@ __sattr_veccall_overload static inline void
    * After:
    * [busy] [   new_big_damn_ass_fragmented_memory_chunk  ] [right_side_mem]
    */
-  if (__iptr > __s_start) {
+  if (__iptr > __s->start) {
     __s_ptr_t __baseptr = __iptr;
     __iptr              = __baseptr - __st_get_size(__baseptr - __st_size) - __st_bd_size;
 
-    while (__iptr >= __s_start && __st_is_free(__iptr)) {
+    while (__iptr >= __s->start && __st_is_free(__iptr)) {
       __sfree_fragmentation_base(__iptr, __baseptr);
 
       __s_ptr_t __prev_ptr = __iptr - __st_size;
-      if (__s_start <= __prev_ptr) {
+      if (__s->start <= __prev_ptr) {
         __s_tag_t * __prev_tag = __s2c_tag(__prev_ptr);
         __prev_ptr             = __prev_ptr - __prev_tag->size - __st_size;
       }
@@ -862,7 +860,7 @@ __sattr_veccall_overload static inline void
      * available memory at all
      */
     return;
-  }
+  } else
 
   /**
    * Right-side memory fragmentation.
@@ -875,7 +873,7 @@ __sattr_veccall_overload static inline void
     __s_ptr_t __baseptr = __iptr;
     __iptr              = __baseptr + __st_get_size(__baseptr) + __st_bd_size;
 
-    while (__iptr < __s_cursor && __st_is_free(__iptr)) {
+    while (__iptr < __s->cursor && __st_is_free(__iptr)) {
       __sfree_fragmentation_base(__baseptr, __iptr);
       __iptr += __st_get_size(__iptr) + __st_bd_size;
     }
@@ -886,10 +884,10 @@ __sattr_veccall_overload static inline void
 
 __sattr_flatten_veccall_overload static inline void
     sfree(register void * restrict __s_nonnull __ptr) {
-  __s_tag_t *         header   = __st_ptr_get_tag(__ptr);
-  const __s_uintptr_t ptr_size = header->size;
-  __s_tag_t *         footer   = __s2c_tag(__ptr + ptr_size);
-  const __s_tag_t     payload  = __st_init(ptr_size, __st_not_busy);
+  __s_tag_t *      header   = __st_ptr_get_tag(__ptr);
+  const __s_size_t ptr_size = header->size;
+  __s_tag_t *      footer   = __s2c_tag(__s2c_ptr(__ptr) + ptr_size);
+  const __s_tag_t  payload  = __st_init(ptr_size, __st_not_busy);
 
   *header = payload;
   *footer = payload;
