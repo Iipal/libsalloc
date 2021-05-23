@@ -37,13 +37,24 @@ const salloc_size_t vla = 32;
 int main(void) { salloc_new_fast(, vla); }
 ```
 
-You will see something like this error:
+You will see error like this:
 ```bash
 test/vla.c:5:18: error: variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]
 int main(void) { salloc_new_fast(, vla); }
                  ^
 test/../salloc.h:302:32: note: expanded from macro 'salloc_new_fast'
   static salloc_buffer_t name##_buff[(capacity)]; \
+```
+
+<br />
+
+Do instead:
+```c
+#include "../salloc.h"
+
+#define NOT_VLA 32
+
+int main(void) { salloc_new_fast(, NOT_VLA); }
 ```
 
 ***
