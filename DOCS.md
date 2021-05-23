@@ -286,10 +286,65 @@ Creating a new static buffer to use by `s-allocators` with at most capacity byte
 
 ***
 
+### `salloc_t *salloc_copy(salloc_t *__dst, salloc_t *__src)`
+Copying all s-allocated memory chunks to `__dst` from `__src` until `__dst` can fit it.
+
+It's force resetting the cursor of used memory in `__dst`. That means if `__src` has no s-allocated memory, but `__dst` does, the `__dst` cursor will be anyway reset to start of the buffer in `__dst` (Just what a [salloc_delete](#salloc_deletesalloc_t-__s) do). Otherwise cursor of `__dst` will be pointing to the end of all the copied memory chunks from `__src`.
+
+#### Params
+ - `__dst`: destination pointer to `salloc_t` object.
+ - `__src`: source      pointer to `salloc_t` object.
+
+#### Returns
+ A `__dst` pointer.
+
+#### Overloads
+ - [`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes): Copying any data to the static buffer in `__dst`.
+ - [`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes-salloc_size_t-__offset): Copying any data to the static buffer in `__dst` with offset.
+
+***
+
+### `void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes)`
+Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst`.
+
+#### Params
+ - `__dst`: destination pointer to `salloc_t` object.
+ - `__src`: source      pointer to any memory area.
+ - `__nbytes`: N bytes to copy.
+
+#### Returns
+ - Pointer to start of the static buffer in `__dst` where all the memory from `__src` was copied.
+ - `NULL` if `__nbytes` bigger than capacity of the static buffer in `__dst`.
+
+#### Overloads
+ - [`salloc_t *salloc_copy(salloc_t *__dst, salloc_t *__src)`](#salloc_t-salloc_copysalloc_t-__dst-salloc_t-__src): Copying `salloc_t` objects.
+ - [`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes-salloc_size_t-__offset): Copying any data to the static buffer in `__dst` with offset.
+
+***
+
+### `void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`
+Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst` starting from `__offset` byte.
+
+#### Params
+ - `__dst`: destination pointer to `salloc_t` object.
+ - `__src`: source      pointer to any memory area.
+ - `__nbytes`: N bytes to copy.
+ - `__offset`: static buffer offset to where will be copied data.
+
+#### Returns
+ - Pointer to start of the static buffer in `__dst` where all the memory from `__src` was copied.
+ - `NULL` if `__nbytes` bigger than static memory with offset of `__offset` bytes from the start of the static buffer can fit in `__dst`.
+
+#### Overloads
+ - [`salloc_t *salloc_copy(salloc_t *__dst, salloc_t *__src)`](#salloc_t-salloc_copysalloc_t-__dst-salloc_t-__src): Copying `salloc_t` objects.
+ - [`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes): Copying any data to the static buffer in `__dst`.
+
+***
+
 ### `salloc_delete(salloc_t *__s)`
 Deleting created by `salloc_new` object.
 
-> This is not actually deleting the object. All pointers are still valid and all the data under them will be kept as well after calling the `salloc_delete` . It's only removing the markup of memory chunks used by `s-allocators`. After this call your static `buff` what you set with `salloc_new` will now have additionally free 16 bytes at both sides (before and after the pointer) of each allocated memory pointers with `salloc` .
+> This is not actually deleting the object. All pointers are still valid and all the data under them will be kept as well after calling the `salloc_delete` . It's only removing the markup of memory chunks used by `s-allocators`, so you can re-use passed `__s` object to new s-allocations, but it probably can override data under previously s-allocated pointers via `__s` object.
 
 #### Params
  - `__s`: a pointer to `salloc_t` object
@@ -300,7 +355,7 @@ Deleting created by `salloc_new` object.
 
 `#ifdef SALLOC_DEBUG`
 ### `salloc_trace(salloc_t *__s)`
-Just prints \ trace all the pointers stored in `salloc_t` object.
+Just prints \ trace all the s-allocated memory chunks stored in `salloc_t` object.
 
 #### Params
  - `__s`: a pointer to `salloc_t` object
