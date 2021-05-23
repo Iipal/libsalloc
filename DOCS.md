@@ -490,6 +490,21 @@ Pointer to the global `salloc_t` object.
 
 ***
 
+### `salloc_t *salloc_copy(salloc_t *__src)`
+[`salloc_t *salloc_copy(salloc_t *__dst, salloc_t *__src)`](#salloc_t-salloc_copysalloc_t-__dst-salloc_t-__src)
+
+***
+
+### `void *salloc_copy(void *__src, salloc_size_t __nbytes)`
+[`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes)
+
+***
+
+### `void *salloc_copy(void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`
+[`void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`](#void-salloc_copysalloc_t-__dst-void-__src-salloc_size_t-__nbytes-salloc_size_t-__offset)
+
+***
+
 ### `salloc_delete()`
 [`salloc_delete(salloc_t *__s)`](#salloc_deletesalloc_t-__s)
 
