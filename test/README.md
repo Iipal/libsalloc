@@ -15,6 +15,17 @@ chmod u+x compile.sh
 ./compile.sh
 ```
 
+### Usage
+Compile `main.c` to `debug` executable:
+```bash
+> ./compile.sh debug
+```
+
+Compile `SALLOC_DEFAULT_ALIGNMENT.c` to `build` executable:
+```bash
+> ./compile.sh build SALLOC_DEFAULT_ALIGNMENT.c
+```
+
 ### Options:
 
 Default flags are: `-Wall -Wextra -Werror -Wunused -Wno-#warnings -std=c2x`
