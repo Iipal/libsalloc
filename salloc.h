@@ -825,7 +825,7 @@ __sattr_veccall_overload static inline void
           register void * restrict __s_nonnull           __ptr) {
   sfree(__ptr);
 
-  __s_ptr_t __iptr = __st_ptr_get_tag(__ptr);
+  __s_ptr_t __iptr = __s2c_ptr(__st_ptr_get_tag(__ptr));
 
   /**
    * Left-side memory fragmentation.
