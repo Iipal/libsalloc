@@ -509,11 +509,11 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
     return NULL;
   }
 
-  __s_ptr_t        __s_iptr   = __dst->start;
+  __s_ptr_t        __dst_iptr = __dst->start + __offset;
   __s_ptr_t        __src_iptr = __s2c_ptr(__src);
   const __s_cptr_t __src_end  = __s2c_ptr(__src) + __nbytes;
   while (__src_iptr <= __src_end) {
-    *__s_iptr++ = *__src_iptr++;
+    *__dst_iptr++ = *__src_iptr++;
   }
 
   return __dst->start;
