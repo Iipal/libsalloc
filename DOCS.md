@@ -171,7 +171,8 @@ typedef struct s_salloc_t {
  - `__st`: For work with memory Boundary Tags(`__s_tag_t`). `__st` prefix stands as shortcut for `__salloc_tag`;
    - `__st_init(size, busy)`: Initializer for `__s_tag_t`.
    - `__st_align_default`: Shortcut for `SALLOC_DEFAULT_ALIGNMENT`.
-   - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`. Example: By default, on x86_64, 8 will aligned to 16 bytes. 24->32 and so on. That means that default `SALLOC_MIN_BUFFER_SIZE` value in most cases is equal to 32.
+   - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`.
+      - > Example: By default, on x86_64, 8 will align to -> 16 bytes. 24->32 and so on. That means that default `SALLOC_MIN_BUFFER_SIZE` value is equal to 32.
    - `__st_size`: Size of one boundary tag.
    - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional. Equals to `SALLOC_EACH_ALLOC_OVERHEAD`.
    - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag meta-data(`__s_tag_t*`) from the `void* x` .
@@ -289,7 +290,7 @@ Creating a new static buffer to use by `s-allocators` with at most capacity byte
 ### `salloc_t *salloc_copy(salloc_t *__dst, salloc_t *__src)`
 Copying all s-allocated memory chunks to `__dst` from `__src` until `__dst` can fit it.
 
-It's force resetting the cursor of used memory in `__dst`. That means if `__src` has no s-allocated memory, but `__dst` does, the `__dst` cursor will be anyway reset to start of the buffer in `__dst` (Just what a [salloc_delete](#salloc_deletesalloc_t-__s) do). Otherwise cursor of `__dst` will be pointing to the end of all the copied memory chunks from `__src`.
+> It's force resetting the cursor of used memory in `__dst`. That means if `__src` has no s-allocated memory, but `__dst` does, the `__dst` cursor will be anyway reset to start of the buffer in `__dst` (Just what a [salloc_delete](#salloc_deletesalloc_t-__s) do). Otherwise cursor of `__dst` will be pointing to the end of all the copied memory chunks from `__src`.
 
 #### Params
  - `__dst`: destination pointer to `salloc_t` object.
@@ -306,6 +307,8 @@ It's force resetting the cursor of used memory in `__dst`. That means if `__src`
 
 ### `void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes)`
 Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst`.
+
+> This method will NOT change `__dst` cursor. Be careful with new s-allocations after calling this method, because you can override copied data.
 
 #### Params
  - `__dst`: destination pointer to `salloc_t` object.
@@ -324,6 +327,8 @@ Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst`.
 
 ### `void *salloc_copy(salloc_t *__dst, void *__src, salloc_size_t __nbytes, salloc_size_t __offset)`
 Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst` starting from `__offset` byte.
+
+> This method will NOT change `__dst` cursor. Be careful with new s-allocations after calling this method, because you can override copied data.
 
 #### Params
  - `__dst`: destination pointer to `salloc_t` object.
