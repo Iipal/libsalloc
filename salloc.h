@@ -537,19 +537,19 @@ __sattr_flatten_veccall_overload static inline void
  * ||||||||||||||||||||||||
  */
 
+#  pragma clang diagnostic ignored "-Wformat"
+
 __sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s) {
   __s_ptr_t iptr   = __s->start;
   __s_ptr_t cursor = __s->cursor;
-
-  printf("%s:\n", __FUNCTION__);
 
   __s_size_t chunks_count = 0;
   while (iptr < cursor) {
     __s_tag_t * iptr_header = __s2c_tag(iptr);
     __s_tag_t * iptr_footer = __s2c_tag(iptr + iptr_header->size + __st_size);
 
-    printf("%d %-4zu [%p ... %p] %d %zu\n",
+    printf("%d %-6zu [%09p ... %09p] %d %zu\n",
            iptr_header->busy,
            iptr_header->size,
            iptr_header,
@@ -566,16 +566,16 @@ __sattr_veccall_overload static inline void
   const __s_size_t  capacity = salloc_capacity(__s);
 
   if (used) {
-    printf("       |\n");
+    printf("         |\n");
   }
 
-  printf("  used [%p ... %p] %zu (%zu)\n",
+  printf("    used [%09p ... %09p] %zu (%zu)\n",
          __s->start,
          cursor,
          used - (chunks_count * __st_bd_size),
          used);
-  printf("unused [%p ... %p] %zu\n"
-         "capacity: %zu; chunks: %zu;\n",
+  printf("  unused [%09p ... %09p] %zu\n"
+         "capacity [%-11zu %+11zu]\n",
          cursor,
          __s->end,
          unused,
