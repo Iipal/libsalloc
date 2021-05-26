@@ -22,7 +22,7 @@
  * \c SALLOC_AFTERUSE_INTERNAL_ATTRS and includes \c stdio.h.
  */
 #ifdef SALLOC_DEBUG
-#  define __sis_salloc_debug_defined__ 1
+#  define __sis_debug_defined__ 1
 
 #  include <stdio.h>
 
@@ -38,14 +38,14 @@
  * For use internal-purpose-only macroses outside of salloc.h
  */
 #ifdef SALLOC_AFTERUSE_INTERNAL_MACROS
-#  define __sis_salloc_afteruse_macros_defined__ 1
+#  define __sis_afteruse_macros_defined__ 1
 #endif
 
 /**
  * For use internal-purpose-only attributes outside of salloc.h
  */
 #ifdef SALLOC_AFTERUSE_INTERNAL_ATTR
-#  define __sis_salloc_afteruse_attrs_defined__ 1
+#  define __sis_afteruse_attrs_defined__ 1
 #endif
 
 #ifdef SALLOC_NULLABILITY
@@ -54,7 +54,7 @@
  * (https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They
  * are can still be accessible if \c SALLOC_AFTERUSE_INTERNAL_MACROS is defined.
  */
-#  define __sis_salloc_nullability_defined__ 1
+#  define __sis_nullability_defined__ 1
 #endif
 
 #ifdef SALLOC_GDI_BUFFER
@@ -64,7 +64,7 @@
  * creating the \c salloc_t object. Size of this buffer can be specified with
  * \c SALLOC_GDI_BUFFER_SIZE .
  */
-#  define __sis_salloc_gdi_buffer_defined__ 1
+#  define __sis_gdi_buffer_defined__ 1
 
 #  ifndef SALLOC_GDI_BUFFER_SIZE
 /**
@@ -80,13 +80,13 @@
  * ---------------------
  */
 
-#define __sis_salloc_attrs_defined__ 1
+#define __sis_attrs_defined__ 1
 
 #if __has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
     (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L)
-#  define __sis_salloc_cpp_attr__ 1
+#  define __sis_cpp_attr__ 1
 #else
-#  define __sis_salloc_cpp_attr__ 0
+#  define __sis_cpp_attr__ 0
 #endif
 
 #if __has_attribute(diagnose_if)
@@ -100,7 +100,7 @@
                       #x " less than or is not aligned by `" #align "`", \
                       "error")
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_veccall [[clang::vectorcall]]
 #else
 #  if __has_attribute(vectorcall)
@@ -110,7 +110,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_const [[gnu::const]]
 #else
 #  if __has_attribute(const)
@@ -120,7 +120,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_overload [[clang::overloadable]]
 #else
 #  if __has_attribute(overloadable)
@@ -131,7 +131,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_flatten [[gnu::flatten]]
 #else
 #  if __has_attribute(flatten)
@@ -141,7 +141,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_munused [[maybe_unused]]
 #else
 #  if __has_attribute(maybe_unused)
@@ -151,7 +151,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_packed [[packed]]
 #else
 #  if __has_attribute(packed)
@@ -161,7 +161,7 @@
 #  endif
 #endif
 
-#if __sis_salloc_cpp_attr__
+#if __sis_cpp_attr__
 #  define __sattr_deprecated(msg) [[gnu::deprecated(msg)]]
 #else
 #  if __has_attribute(deprecated)
@@ -183,7 +183,7 @@
  * ----------------
  */
 
-#ifdef __sis_salloc_nullability_defined__
+#ifdef __sis_nullability_defined__
 #  define __s_nonnull  _Nonnull
 #  define __s_nullable _Nullable
 #else
@@ -309,11 +309,11 @@ typedef struct s_salloc_t {
  * ------------------
  */
 
-#ifndef __sis_salloc_macroses_defined__
-#  define __sis_salloc_macroses_defined__ 1
+#ifndef __sis_macroses_defined__
+#  define __sis_macroses_defined__ 1
 
 #  ifndef NULL
-#    define __sis_salloc_null_defined__ 1
+#    define __sis_null_defined__ 1
 
 #    define NULL ((void *)0)
 #  endif
@@ -408,7 +408,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 __sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
-#ifdef __sis_salloc_debug_defined__
+#ifdef __sis_debug_defined__
 __sattr_veccall_overload static inline void
     salloc_trace(register salloc_t * const restrict __s_nonnull __s);
 #endif
@@ -530,7 +530,7 @@ __sattr_flatten_veccall_overload static inline void
   __s->cursor = __s->start;
 }
 
-#ifdef __sis_salloc_debug_defined__
+#ifdef __sis_debug_defined__
 /**
  * ||||||||||||||||||||||||
  * SALLOC_TRACE DEFINITIONS
@@ -899,7 +899,7 @@ __sattr_flatten_veccall_overload static inline void
  * -----------------------------
  */
 
-#ifdef __sis_salloc_gdi_buffer_defined__
+#ifdef __sis_gdi_buffer_defined__
 
 /**
  * Below just an interfaces\accessors to all the standard s-allocators via gdi buffer,
@@ -998,18 +998,18 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
  * ---------------
  */
 
-#ifdef __sis_salloc_afteruse_macros_defined__
+#ifdef __sis_afteruse_macros_defined__
 #  warning "salloc macroses still defined."
-#  undef __sis_salloc_macroses_defined__
+#  undef __sis_macroses_defined__
 #endif
-#ifdef __sis_salloc_afteruse_attrs_defined__
+#ifdef __sis_afteruse_attrs_defined__
 #  warning "salloc attributes still defined."
-#  undef __sis_salloc_attrs_defined__
+#  undef __sis_attrs_defined__
 #endif
 
-#ifdef __sis_salloc_attrs_defined__
-#  undef __sis_salloc_attrs_defined__
-#  undef __sis_salloc_cpp_attr__
+#ifdef __sis_attrs_defined__
+#  undef __sis_attrs_defined__
+#  undef __sis_cpp_attr__
 #  undef __sattr_diagnose_if
 #  undef __sattr_diagnose_align
 #  undef __sattr_veccall
@@ -1026,13 +1026,13 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
 #  undef __sattr_flatten_veccall
 #endif
 
-#ifdef __sis_salloc_null_defined__
-#  undef __sis_salloc_null_defined__
+#ifdef __sis_null_defined__
+#  undef __sis_null_defined__
 #  undef NULL
 #endif
 
-#if __sis_salloc_macroses_defined__
-#  undef __sis_salloc_macroses_defined__
+#if __sis_macroses_defined__
+#  undef __sis_macroses_defined__
 
 #  undef __s_nonnull
 #  undef __s_nullable
