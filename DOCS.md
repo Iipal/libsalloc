@@ -1,7 +1,8 @@
 # SALLOC DOCUMENTATIONS
 
 ## Why it's here and not in code?
-Because in code with time it's makes everything harder to navigate. Still it's doesn't mean that code has no comments at all, at least types are always described as well as functionality.
+
+Because in code with time it's makes everything harder to navigate. Still it's doesn't mean that code has no comments at all, at least types are always described as well as some functionality.
 
 ## Navigation
 
@@ -23,14 +24,18 @@ Because in code with time it's makes everything harder to navigate. Still it's d
 
 ### Required a clang compiler
 
-This implementation are highly depended on `clang` compiler because of it's [attributes](#attributes), such as `overloadable`. Also it's generates better AVX\SSE assembly than gcc.
+This implementation are highly depended on `clang` compiler because of it's [attributes](#attributes), such as `overloadable`. Also it's generates better AVX\SSE assembly than `gcc`.
 
 ***
 
 ### AVOID ANY KIND OF VLA
+
+What is [VLA](https://en.wikipedia.org/wiki/Variable-length_array)? [VLA](https://en.wikipedia.org/wiki/Variable-length_array) is evil!
+
 I mean it! Even this code can hurt all the optimizations, also it's will not even compile:
+
 ```c
-#include "../salloc.h"
+#include "salloc.h"
 
 const salloc_size_t vla = 32;
 
@@ -39,18 +44,17 @@ int main(void) { salloc_new_fast(, vla); }
 
 You will see error like this:
 ```bash
-test/vla.c:5:18: error: variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]
+vla.c:5:18: error: variable length array folded to constant array as an extension [-Werror,-Wgnu-folding-constant]
 int main(void) { salloc_new_fast(, vla); }
                  ^
-test/../salloc.h:302:32: note: expanded from macro 'salloc_new_fast'
+salloc.h:302:32: note: expanded from macro 'salloc_new_fast'
   static salloc_buffer_t name##_buff[(capacity)]; \
 ```
 
-<br />
 
 Do instead:
 ```c
-#include "../salloc.h"
+#include "salloc.h"
 
 #define NOT_VLA 32
 
@@ -61,15 +65,15 @@ int main(void) { salloc_new_fast(, NOT_VLA); }
 
 ### Internal un-definition
 
-Almost every internal-use-only [macroses](#macroses)\\[attributes](#attributes)\\[types](#types), and even some functions are specified with prefix `__s`, and almost everything are un-defined(with `#undef` of course) at the end of `salloc.h`, but still [types](#types) and function can't be un-defined, because of this - it's not recommended to use anything from `salloc.h` with prefix `__s` outside of it.
+Almost every internal-use-only [macroses](#macroses)\\[attributes](#attributes)\\[types](#types), and even some functions are specified with prefix `__s`, and almost everything are un-defined(with `#undef` of course) at the end of `salloc.h`, but still [types](#types) and some functions can't be un-defined, because of this - it's not recommended to use anything from `salloc.h` with prefix `__s` outside of it.
 
-And yes __anyway__ can use it outside of `salloc.h` via some [configurations](#configuration)
+And yes, you __anyway__ can use it outside of `salloc.h` via some [configurations](#configuration) on your own risk.
 
 ***
 
 ### Other
 
-Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf) document, which explains everything about most common malloc-like allocator implementations.
+Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf) document, which explains everything about most common malloc-like allocator implementations. `salloc` uses Implicit Bi-Directional Free List via Boundary Tags.
 
 ***
 
@@ -78,11 +82,12 @@ Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf
 You can specify a few settings before include `salloc.h`:
 
  - `SALLOC_DEFAULT_ALIGNMENT`: You can manually specify the default alignment of the size of each pointer. Default: `(sizeof(void *) * 2)`.
- - `SALLOC_DEBUG`: Enables `salloc_trace` function, `SALLOC_AFTERUSE_INTERNAL_MACROS`, and `SALLOC_AFTERUSE_INTERNAL_ATTRS` and includes `stdio.h`.
+    - To help of _finding_ the right s-allocation size without VLA, there are some [public macroses](#public-macroses) that can be helpful. Theirs values depend on `SALLOC_DEFAULT_ALIGNMENT`.
+ - `SALLOC_DEBUG`: Enables `salloc_trace` function, `SALLOC_AFTERUSE_INTERNAL_MACROS`, `SALLOC_AFTERUSE_INTERNAL_ATTRS`, and includes `stdio.h`.
  - `SALLOC_AFTERUSE_INTERNAL_MACROS`: for use [internal macroses](#macroses) outside of `salloc.h` (This setting will not un-define them).
  - `SALLOC_AFTERUSE_INTERNAL_ATTR`: for use [attributes](#attributes) outside of `salloc.h`.
  - `SALLOC_NULLABILITY`: enables clang [nullability checks](https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They are can still be accessible if `SALLOC_AFTERUSE_INTERNAL_MACROS` is defined.
- - `SALLOC_GDI_BUFFER`: more about this setting [here](#gdi).
+ - `SALLOC_GDI_BUFFER`: more about this setting [in the last section](#gdi).
 
 Example:
 ```c
@@ -104,37 +109,39 @@ Available attributes macroses (most of them are links for attributes description
  - [__sattr_munused](https://clang.llvm.org/docs/AttributeReference.html#maybe-unused-unused)
  - `__sattr_packed`: It's not currently described in clang docs, but here is [explanation](https://www.keil.com/support/man/docs/armclang_ref/armclang_ref_chr1393328521340.htm) about it works on keil.com.
  - [__sattr_deprecated](https://clang.llvm.org/docs/AttributeReference.html#deprecated): Currently unused.
- - `__sattr_veccall_const`: shortcut for `__sattr_veccall __sattr_const`
- - `__sattr_veccall_const_overload`: shortcut for `__sattr_veccall __sattr_const __sattr_overload`
- - `__sattr_veccall_overload`: shortcut for `__sattr_veccall __sattr_overload`
- - `__sattr_flatten_veccall_overload`: shortcut for `__sattr_flatten __sattr_veccall __sattr_overload`
- - `__sattr_flatten_veccall`: shortcut for `__sattr_flatten __sattr_veccall`
+ - `__sattr_veccall_const`: shortcut for `__sattr_veccall`, and `__sattr_const`
+ - `__sattr_veccall_const_overload`: shortcut for `__sattr_veccall`, `__sattr_const`, and ` __sattr_overload`
+ - `__sattr_veccall_overload`: shortcut for `__sattr_veccall` , and `__sattr_overload`
+ - `__sattr_flatten_veccall_overload`: shortcut for `__sattr_flatten`, `__sattr_veccall`, and `__sattr_overload`
+ - `__sattr_flatten_veccall`: shortcut for `__sattr_flatten`, and `__sattr_veccall`
 
 ## Types
+
  - `__s_size_t`: analog of `size_t` from `stddef.h`;
  - `__s_ssize_t`: analog of `ssize_t` from `stddef.h`;
  - `__s_uintptr_t`: analog of `uintptr_t` from `stdint.h`;
  - `__s_uint8_t`: analog of `uint8_t` from `stdint.h`;
  - `__s_ptr_t`: most common pointer for internal-use: `__s_uint8_t * restrict`;
  - `__s_cptr_t`: most common pointer for internal-use, but const: `__s_uint8_t * const restrict`;
- - `__s_salloc_tag`: Commentary from code:
+ - `__s_tag_t`: Boundary Tag structure:
 ```c
 /**
  * Memory mapping with bidirectional implicit free list or Boundary Tags.
  *
  * Example:
- * By calling salloc with \c size of 128 bytes it actually allocating \c size +
- * \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
+ * By calling \c salloc with \c size of 1024 bytes it actually allocating
+ * \c size + \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
  *
- * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **header**
- * [                start of available to use                ] <- salloc returns this
- * [                        1024 bytes                       ] **payload**
- * [             of memory in static memory buffer           ]
- * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **footer**
+ * [ __s_tag_t with ->size == 1024 ] **header**
+ * [   start of available to use   ] <- salloc returns this
+ * [           1024 bytes          ] **payload**
+ * [   of memory in static buffer  ]
+ * [ __s_tag_t with ->size == 1024 ] **footer**
  */
 ```
 
 ## Public Types
+
  - `salloc_size_t`: analog of size_t (`__s_size_t`);
  - `salloc_ssize_t`: analog of ssize_t (`__s_ssize_t`);
  - `salloc_buffer_t`: most convenient static buffer element type (`__s_uint8_t`);
@@ -153,35 +160,47 @@ typedef struct s_salloc_t {
 ```
 
 ## Public Macroses
- - `SALLOC_EACH_ALLOC_OVERHEAD`: Size in bytes how much each new allocation will take memory in static buffer for mapping via Boundary Tags.
- - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer. (Doesn't count `SALLOC_EACH_ALLOC_OVERHEAD`)
- - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size. (Counts `SALLOC_EACH_ALLOC_OVERHEAD`)
+
+ - `SALLOC_EACH_ALLOC_OVERHEAD`: Size in bytes how much each new s-allocation will take memory in static buffer for mapping via Boundary Tags.
+ - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer.
+    - Doesn't counts `SALLOC_EACH_ALLOC_OVERHEAD`.
+    - Depends on `SALLOC_DEFAULT_ALIGNMENT`, because minimal s-allocation size is equal to default alignment.
+ - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory size in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size.
+    - Counts `SALLOC_EACH_ALLOC_OVERHEAD`.
  - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a buffer with size of `capacity` prefixed with `name` and `salloc_t` object for s-allocators. It's creates:
    - `static salloc_buffer_t name##_buff[(capacity)];`
-   - `const salloc_size_t name##_buff_capacity = (capacity);`
+   - `const salloc_size_t name##_buff_capacity = (capacity);`: It creates after the `name##_buff` definition to avoid VLA, but store the buffer capacity.
    - `salloc_t name##_slc = salloc_new(name##_buff, name##_buff_capacity);`
 
 ## Macroses
 
- - `__s2c`: Most convenient type conversions. `__s2c` prefix stands as shortcut for `__salloc_to_cast`. They are pretty straightforward, so I can just put their definition here as self-explanation about each of them:
-   - `__s2c_uiptr(x) ((__s_uintptr_t)(x))`
-   - `__s2c_ptr(x)   ((__s_ptr_t)(x))`
-   - `__s2c_tag(x)   ((__s_tag_t *)(void *)(x))`
+***
 
- - `__st`: For work with memory Boundary Tags(`__s_tag_t`). `__st` prefix stands as shortcut for `__salloc_tag`;
-   - `__st_init(size, busy)`: Initializer for `__s_tag_t`.
-   - `__st_align_default`: Shortcut for `SALLOC_DEFAULT_ALIGNMENT`.
-   - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`.
-      - > Example: By default, on x86_64, 8 will align to -> 16 bytes. 24->32 and so on. That means that default `SALLOC_MIN_BUFFER_SIZE` value is equal to 32.
-   - `__st_size`: Size of one boundary tag.
-   - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional. Equals to `SALLOC_EACH_ALLOC_OVERHEAD`.
-   - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag meta-data(`__s_tag_t*`) from the `void* x` .
-   - `__st_tag_get_ptr(x)`: Used to return a valid pointer to user. Just like [s-allocators](#s-allocators) do.
-   - `__st_busy`: constant 1. Used to indicate is memory chunk is busy.
-   - `__st_not_busy`: constant 0.
-   - `__st_get_busy(x)`: gets from `x` busy-indicator (assumed that `x` is a pointer-type).
-   - `__st_get_size(x)`: gets from `x` size of memory chunk (assumed that `x` is a pointer-type).
-   - `__st_is_free(x) !__st_get_busy(x)`: Returns true is memory chunk was freed (assumed that `x` is a pointer-type).
+> Most convenient [type](#types) conversions. They are pretty straightforward, so I can just put their definition here as self-explanation about each of them.
+> `__s2c` prefix stands as shortcut for `__salloc_to_cast`.
+
+ - `__s2c_uiptr(x) ((__s_uintptr_t)(x))`
+ - `__s2c_ptr(x)   ((__s_ptr_t)(x))`
+ - `__s2c_tag(x)   ((__s_tag_t *)(void *)(x))`
+
+***
+
+> `__st_*` For work with memory Boundary Tags(`__s_tag_t`).
+> `__st` prefix stands as shortcut for `__salloc_tag`.
+
+ - `__st_init(size, busy)`: Initializer for `__s_tag_t`.
+ - `__st_align_default`: Shortcut for `SALLOC_DEFAULT_ALIGNMENT`.
+ - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`.
+   - > Example: By default, on x86_64, 8 will align to -> 16 bytes. 24->32 and so on. That means that defaul `SALLOC_MIN_BUFFER_SIZE` value is equal to 32.
+ - `__st_size`: Size of one boundary tag.
+ - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional. Equals to `SALLOC_EACH_ALLOC_OVERHEAD`.
+ - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag meta-data(`__s_tag_t*`) from the `void* x` .
+ - `__st_tag_get_ptr(x)`: Used to return a valid pointer to user. Just like [s-allocators](#s-allocators) do.
+ - `__st_busy`: constant 1. Used to indicate is memory chunk is busy.
+ - `__st_not_busy`: constant 0.
+ - `__st_get_busy(x)`: gets from `x` busy-indicator (assumed that `x` is a pointer-type).
+ - `__st_get_size(x)`: gets from `x` size of memory chunk (assumed that `x` is a pointer-type).
+ - `__st_is_free(x) !__st_get_busy(x)`: Returns true is memory chunk was freed (assumed that `x` is a pointer-type).
 
 ## S-Allocators
 
@@ -260,7 +279,7 @@ An additional functional which makes `salloc`-allocators a bit different in use 
 ***
 
 ### `salloc_t salloc_new(void *buff, salloc_size_t capacity)`
-Creating a new static buffer to use by `s-allocators` with at most capacity bytes.
+Creating a new static buffer to use by `s-allocators` with at most `capacity` bytes.
 
 #### Params
  - `buff`: a pointer to static buffer.
@@ -275,7 +294,8 @@ Creating a new static buffer to use by `s-allocators` with at most capacity byte
 ***
 
 ### `salloc_new(void *buff, salloc_size_t capacity, salloc_t *__s)`
-Creating a new static buffer to use by `s-allocators` with at most capacity bytes at give `__s` object.
+
+Creating a new static buffer to use by `s-allocators` with at most `capacity` bytes at give `__s` object.
 
 #### Params
  - `buff`: a pointer to static buffer.
@@ -294,7 +314,7 @@ Copying all s-allocated memory chunks to `__dst` from `__src` until `__dst` can 
 
 #### Params
  - `__dst`: destination pointer to `salloc_t` object.
- - `__src`: source      pointer to `salloc_t` object.
+ - `__src`: source pointer to `salloc_t` object.
 
 #### Returns
  A `__dst` pointer.
@@ -312,7 +332,7 @@ Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst`.
 
 #### Params
  - `__dst`: destination pointer to `salloc_t` object.
- - `__src`: source      pointer to any memory area.
+ - `__src`: source pointer to any memory area.
  - `__nbytes`: N bytes to copy.
 
 #### Returns
@@ -331,8 +351,9 @@ Copies `__nbytes` bytes from memory area `__src` to static buffer in `__dst` sta
 > This method will NOT change `__dst` cursor. Be careful with new s-allocations after calling this method, because you can override copied data.
 
 #### Params
+
  - `__dst`: destination pointer to `salloc_t` object.
- - `__src`: source      pointer to any memory area.
+ - `__src`: source pointer to any memory area.
  - `__nbytes`: N bytes to copy.
  - `__offset`: static buffer offset to where will be copied data.
 
