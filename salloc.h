@@ -219,14 +219,14 @@ typedef __s_uint8_t * const restrict __s_nonnull __s_cptr_t; /* __s_ptr_t but co
  * Memory mapping with bidirectional implicit free list or Boundary Tags.
  *
  * Example:
- * By calling salloc with \c size of 128 bytes it actually allocating \c size +
- * \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
+ * By calling \c salloc with \c size of 1024 bytes it actually allocating
+ * \c size + \c (sizeof(__s_tag_t)*2) bytes for memory mapping:
  *
- * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **header**
- * [                start of available to use                ] <- salloc returns this
- * [                        1024 bytes                       ] **payload**
- * [             of memory in static memory buffer           ]
- * [ __s_tag_t with ->size == 1024 and by default ->busy == 1] **footer**
+ * [ __s_tag_t with ->size == 1024 ] **header**
+ * [   start of available to use   ] <- salloc returns this
+ * [           1024 bytes          ] **payload**
+ * [   of memory in static buffer  ]
+ * [ __s_tag_t with ->size == 1024 ] **footer**
  */
 typedef struct __s_salloc_tag {
 #if __S_WORDSIZE == 64
