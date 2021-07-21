@@ -527,7 +527,9 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
 
 __sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s) {
-  __s->cursor = __s->start;
+  if (__s->cursor != __s->start) {
+    __s->cursor = __s->start;
+  }
 }
 
 #ifdef __sis_debug_defined__
