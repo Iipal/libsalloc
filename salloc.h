@@ -74,6 +74,39 @@
 #  endif
 #endif
 
+#ifdef SALLOC_C2X_ATTRS
+#  if 9 > __clang_major__
+#    warning \
+        "Your compiler is too old and it doesn't support C2X styled attributes at all."
+#  else
+
+/**
+ * Force enabling c2x-style attributes. (At least in clang-12 there is no indentation on
+ * compile-time for C2X-standard and it's features)
+ *
+ * WARNING: make sure that your compiler supports it!
+ * For example: C2X-styled attributes will only works correctly with clang >=11.0.0
+ * and with \c -std=c2x compiler option. Otherwise \c -std=c2x option will not work with
+ * clang <9.0.0 and before 11.0.0 all of the C2X-styled attributes are not yet
+ * implemented. So required compiler for this configuration IS clang >=11.0.0
+ *
+ * NOTE: VSCode C/C++ extension doesn't like C2X attributes.
+ */
+#    define __sis_c2x_attrs_force__ 1
+
+/**
+ * Only for better compatibility with older versions of clang.
+ * Still \c __sattr_packed attribute can cause "uknown attribute" warning\error
+ * even on newest versions of clang-compiler.
+ *
+ * Why? IDK.
+ */
+#    if 11 > __clang_major__
+#      pragma clang diagnostic ignored "-Wunknown-attributes"
+#    endif
+#  endif
+#endif
+
 /**
  * ---------------------
  * ATTRIBUTES DEFINITION
@@ -83,7 +116,8 @@
 #define __sis_attrs_defined__ 1
 
 #if __has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
-    (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L)
+    (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L) || \
+    (defined(__sis_c2x_attrs_force__))
 #  define __sis_cpp_attr__ 1
 #else
 #  define __sis_cpp_attr__ 0
@@ -246,8 +280,8 @@ typedef struct __s_salloc_tag {
 #  define __S_TAG_BUSY_BITS 1  /** busy indicator **/
 #endif
 
-  __s_uintptr_t size : __S_TAG_SIZE_BITS; /* size of current pointer */
-  __s_uint8_t __alignment : __S_TAG_ALIGN_BITS __sattr_munused; /* as it is */
+  __s_uintptr_t               size : __S_TAG_SIZE_BITS; /* size of current pointer */
+  __sattr_munused __s_uint8_t __alignment : __S_TAG_ALIGN_BITS; /* as it is */
   __s_uint8_t busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
 } __sattr_packed __s_tag_t;
 
@@ -1031,6 +1065,10 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
 #ifdef __sis_null_defined__
 #  undef __sis_null_defined__
 #  undef NULL
+#endif
+
+#ifdef __sis_c2x_attrs_force__
+#  undef __sis_c2x_attrs_force__
 #endif
 
 #if __sis_macroses_defined__
