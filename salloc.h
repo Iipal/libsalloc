@@ -858,7 +858,7 @@ __sattr_veccall_overload static inline void
 
   if (__sfree_shrink_cursor(__s, __iptr)) {
     /**
-     * If cursors was moved after left-side fragmentation than means right-side has no
+     * If cursor was moved after left-side fragmentation that means right-side has no
      * available memory at all
      */
     return;
