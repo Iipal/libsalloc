@@ -482,8 +482,12 @@ __sattr_flatten_veccall_overload static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
 #ifdef __sis_debug_defined__
-__sattr_veccall_overload static inline void
-    salloc_trace(register salloc_t * const restrict __s_nonnull __s);
+#  define salloc_trace(__sptr) __strace(__sptr)
+
+__sattr_veccall static inline void
+    __strace(register salloc_t * const restrict __s_nonnull __s);
+#else
+#  define salloc_trace(__sptr)
 #endif
 
 __sattr_flatten_veccall_overload static inline salloc_size_t
@@ -658,64 +662,6 @@ __sattr_flatten_veccall_overload static inline void
     __s->cursor = __s->start;
   }
 }
-
-#ifdef __sis_debug_defined__
-/**
- * ||||||||||||||||||||||||
- * SALLOC_TRACE DEFINITIONS
- * ||||||||||||||||||||||||
- */
-
-#  ifdef __clang__
-#    pragma clang diagnostic ignored "-Wformat"
-#  else
-#    pragma GCC diagnostic ignored "-Wformat"
-#  endif
-
-__sattr_veccall_overload static inline void
-    salloc_trace(register salloc_t * const restrict __s_nonnull __s) {
-  __s_ptr_t iptr   = __s->start;
-  __s_ptr_t cursor = __s->cursor;
-
-  __s_size_t chunks_count = 0;
-  while (iptr < cursor) {
-    __s_tag_t * iptr_header = __s2c_tag(iptr);
-    __s_tag_t * iptr_footer = __s2c_tag(iptr + iptr_header->size + __st_size);
-
-    printf("%d %-6zu [%09p ... %09p] %d %zu\n",
-           iptr_header->busy,
-           iptr_header->size,
-           iptr_header,
-           iptr_footer,
-           iptr_footer->busy,
-           iptr_footer->size);
-
-    iptr = __s2c_ptr(iptr_footer) + __st_size;
-    ++chunks_count;
-  }
-
-  const __s_ssize_t unused   = salloc_unused(__s);
-  const __s_size_t  used     = salloc_used(__s);
-  const __s_size_t  capacity = salloc_capacity(__s);
-
-  if (used) {
-    printf("         |\n");
-  }
-
-  printf("    used [%09p ... %09p] %zu (%zu)\n",
-         __s->start,
-         cursor,
-         used - (chunks_count * __st_bd_size),
-         used);
-  printf("  unused [%09p ... %09p] %zu\n"
-         "capacity [%-11zu %+11zu]\n",
-         cursor,
-         __s->end,
-         unused,
-         capacity,
-         chunks_count);
-}
-#endif
 
 /**
  * |||||||||||||||||||||||||||
@@ -1154,6 +1100,65 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
   return salloc_unused(__gdi_slc, __size, __nmemb);
 }
 
+#endif
+
+#ifdef __sis_debug_defined__
+
+/**
+ * ||||||||||||||||||||||||
+ * SALLOC_TRACE DEFINITIONS
+ * ||||||||||||||||||||||||
+ */
+
+#  ifdef __clang__
+#    pragma clang diagnostic ignored "-Wformat"
+#  else
+#    pragma GCC diagnostic ignored "-Wformat"
+#  endif
+
+__sattr_veccall_overload static inline void
+    __strace(register salloc_t * const restrict __s_nonnull __s) {
+  __s_ptr_t iptr   = __s->start;
+  __s_ptr_t cursor = __s->cursor;
+
+  __s_size_t chunks_count = 0;
+  while (iptr < cursor) {
+    __s_tag_t * iptr_header = __s2c_tag(iptr);
+    __s_tag_t * iptr_footer = __s2c_tag(iptr + iptr_header->size + __st_size);
+
+    printf("%d %-6zu [%09p ... %09p] %d %zu\n",
+           iptr_header->busy,
+           iptr_header->size,
+           iptr_header,
+           iptr_footer,
+           iptr_footer->busy,
+           iptr_footer->size);
+
+    iptr = __s2c_ptr(iptr_footer) + __st_size;
+    ++chunks_count;
+  }
+
+  const __s_ssize_t unused   = salloc_unused(__s);
+  const __s_size_t  used     = salloc_used(__s);
+  const __s_size_t  capacity = salloc_capacity(__s);
+
+  if (used) {
+    printf("         |\n");
+  }
+
+  printf("    used [%09p ... %09p] %zu (%zu)\n",
+         __s->start,
+         cursor,
+         used - (chunks_count * __st_bd_size),
+         used);
+  printf("  unused [%09p ... %09p] %zu\n"
+         "capacity [%-11zu %+11zu]\n",
+         cursor,
+         __s->end,
+         unused,
+         capacity,
+         chunks_count);
+}
 #endif
 
 /**
