@@ -18,6 +18,7 @@ Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf
 
 - Implemented using **implicit bidirectional free-list** aka **Bidirectional Coalescing: Boundary Tags**.
 - Each allocation takes additional 16bytes in the static buffer for **Boundary Tags** info.
+  - In code, each **Boundary Tag** is described in the `__s_tag_t` structure
 - Each allocation aligned by 16bytes by default. (24 will align to 32)
 - Each allocation will use **Best Fit** method to find a free block. Best Fit: Search the list, choose the best free block: fits, with the fewest bytes leftover.
 - On `sfree` call implemented with **Bidirectional Coalescing with preceding free blocks**.
@@ -28,4 +29,4 @@ Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf
 
 > Originally it's written for `clang` only, because of its features.
 
-> In code, each **Boundary Tag** is described in the `__s_chunk_t` structure, and macroses, types or functions with prefixes: `__s_`, `__sc_`, `__s2c`, `__sattr_`, `__salloc_` or `__sfree_` are created only for internal-use purposes.
+> All macroses, types or functions with prefixes: `__s_`, `__st_`, `__s2c`, `__sattr_`, `__salloc_` or `__sfree_` are created only for internal-use purposes.
