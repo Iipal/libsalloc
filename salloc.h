@@ -98,17 +98,6 @@
  * NOTE: VSCode C/C++ extension doesn't like C2X attributes.
  */
 #    define __sis_c2x_attrs_force__ 1
-
-/**
- * Only for better compatibility with older versions of clang.
- * Still \c __sattr_packed attribute can cause "uknown attribute" warning\error
- * even on newest versions of clang-compiler.
- *
- * Why? IDK.
- */
-#    if defined __clang_major__ && 11 > __clang_major__
-#      pragma clang diagnostic ignored "-Wunknown-attributes"
-#    endif
 #  endif
 #endif
 
@@ -130,9 +119,10 @@
 
 #define __sis_attrs_defined__ 1
 
-#if __has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
-    (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L) || \
-    (defined(__sis_c2x_attrs_force__))
+#if defined(__sis_c2x_attrs_force__) || \
+    (defined(__clang__) && \
+     (__has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
+      (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L)))
 #  define __sis_cpp_attr__ 1
 #else
 #  define __sis_cpp_attr__ 0
@@ -149,94 +139,63 @@
                       #x " less than or is not aligned by `" #align "`", \
                       "error")
 
-#if __sis_cpp_attr__
-#  if __has_attribute(vectorcall)
+#if __has_attribute(vectorcall)
+#  if __sis_cpp_attr__
 #    define __sattr_veccall [[clang::vectorcall]]
 #  else
-#    define __sattr_veccall
-#  endif
-#else
-#  if __has_attribute(vectorcall)
 #    define __sattr_veccall __attribute__((vectorcall))
-#  else
-#    define __sattr_veccall
 #  endif
-#endif
-
-#if __sis_cpp_attr__
-#  define __sattr_const [[gnu::const]]
 #else
-#  if __has_attribute(const)
-#    define __sattr_const __attribute__((const))
-#  else
-#    define __sattr_const
-#  endif
+#  define __sattr_veccall
 #endif
 
-#if __sis_cpp_attr__
-#  if __has_attribute(overloadable)
+#if __has_attribute(const)
+#  if __sis_cpp_attr__
+#    define __sattr_const [[gnu::const]]
+#  else
+#    define __sattr_const __attribute__((const))
+#  endif
+#else
+#  define __sattr_const
+#endif
+
+#if __has_attribute(overloadable)
+#  if __sis_cpp_attr__
 #    define __sattr_overload [[clang::overloadable]]
 #  else
-#    define __sattr_no_overload 1
-#    define __sattr_overload
-#  endif
-#else
-#  if __has_attribute(overloadable)
 #    define __sattr_overload __attribute__((overloadable))
-#  else
-#    define __sattr_overload
-#    define __sattr_no_overload 1
-#    warning "Your compiler doesn't support overloadable attribute."
 #  endif
+#else
+#  define __sattr_overload
+#  define __sattr_no_overload 1
+#  warning "Your compiler doesn't support overloadable attribute."
 #endif
 
-#if __sis_cpp_attr__
-#  define __sattr_flatten [[gnu::flatten]]
-#else
-#  if __has_attribute(flatten)
+#if __has_attribute(flatten)
+#  if __sis_cpp_attr__
+#    define __sattr_flatten [[flatten]]
+#  else
 #    define __sattr_flatten __attribute__((flatten))
-#  else
-#    define __sattr_flatten
 #  endif
-#endif
-
-#ifndef __sattr_munused
-#  if __has_attribute(maybe_unused)
-#    ifdef __sis_cpp_attr
-#      define __sattr_munused [[maybe_unused]]
-#    else
-#      define __sattr_munused __attribute__((maybe_unused))
-#    endif
-#  elif __has_attribute(unused)
-#    define __sattr_munused __attribute__((unused))
-#  else
-#    define __sattr_munused
-#  endif
-#endif
-
-#if __sis_cpp_attr__
-#  define __sattr_packed [[packed]]
 #else
-#  if __has_attribute(packed)
-#    define __sattr_packed __attribute__((packed))
-#  else
-#    define __sattr_packed
-#  endif
+#  define __sattr_flatten
 #endif
 
-#if __sis_cpp_attr__
-#  define __sattr_deprecated(msg) [[gnu::deprecated(msg)]]
-#else
-#  if __has_attribute(deprecated)
-#    define __sattr_deprecated(msg) __attribute__((deprecated(msg)))
+#if __has_attribute(maybe_unused)
+#  ifdef __sis_cpp_attr
+#    define __sattr_munused [[maybe_unused]]
 #  else
-#    define __sattr_deprecated(msg)
+#    define __sattr_munused __attribute__((maybe_unused))
 #  endif
+#elif __has_attribute(unused)
+#  define __sattr_munused __attribute__((unused))
+#else
+#  define __sattr_munused
 #endif
 
 #define __sattr_veccall_const            __sattr_veccall __sattr_const
-#define __sattr_veccall_const_overload   __sattr_veccall __sattr_const __sattr_overload
 #define __sattr_veccall_overload         __sattr_veccall __sattr_overload
+#define __sattr_veccall_const_overload   __sattr_veccall __sattr_const __sattr_overload
 #define __sattr_flatten_veccall_overload __sattr_flatten __sattr_veccall __sattr_overload
 #define __sattr_flatten_veccall          __sattr_flatten __sattr_veccall
 
@@ -312,7 +271,7 @@ typedef struct __s_salloc_tag {
   __s_uintptr_t               size : __S_TAG_SIZE_BITS; /* size of current pointer */
   __s_uint8_t __sattr_munused __alignment : __S_TAG_ALIGN_BITS; /* as it is */
   __s_uint8_t busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
-} __sattr_packed __s_tag_t;
+} __s_tag_t;
 
 /**
  * ------------------------
@@ -326,8 +285,8 @@ typedef __s_uint8_t salloc_buffer_t; /* most convenient static buffer element  t
 typedef __s_ptr_t   salloc_ptr_t;    /* public version for most common pointer type */
 
 /**
- * Object to which mapped the static buffer via \c salloc_new, and which tracking all the
- * available memory to use in current static buffer.
+ * Object to which mapped the static buffer via \c salloc_new, and which tracking all
+ * the available memory to use in current static buffer.
  */
 typedef struct s_salloc_t {
   salloc_ptr_t start;  /* start   of available space in static buffer */
@@ -342,8 +301,8 @@ typedef struct s_salloc_t {
  */
 
 /**
- * \brief Size in bytes how much each new allocation will take memory in static buffer for
- * mapping via Boundary Tags.
+ * \brief Size in bytes how much each new allocation will take memory in static
+ * buffer for mapping via Boundary Tags.
  */
 #define SALLOC_EACH_ALLOC_OVERHEAD (sizeof(__s_tag_t) * 2)
 
@@ -353,8 +312,8 @@ typedef struct s_salloc_t {
 #define SALLOC_MIN_ALLOC_SIZE SALLOC_DEFAULT_ALIGNMENT
 
 /**
- * \brief Minimum required memory in static buffer for at least 1 pointer with at least
- * \c SALLOC_MIN_ALLOC_SIZE bytes size.
+ * \brief Minimum required memory in static buffer for at least 1 pointer with at
+ * least \c SALLOC_MIN_ALLOC_SIZE bytes size.
  */
 #define SALLOC_MIN_BUFFER_SIZE (SALLOC_EACH_ALLOC_OVERHEAD + SALLOC_MIN_ALLOC_SIZE)
 
@@ -427,10 +386,11 @@ typedef struct s_salloc_t {
 
 /** S-Allocators */
 
-static inline void * __s_nullable
+__sattr_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const salloc_size_t                   __size)
-        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE) __sattr_veccall_overload;
+        __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
+
 __sattr_flatten_veccall static inline void * __s_nullable
     snalloc(register salloc_t * const restrict __s_nonnull __s,
             register const salloc_size_t                   __size,
@@ -440,6 +400,7 @@ __sattr_flatten_veccall static inline void * __s_nullable
 __sattr_veccall_overload static inline void
     sfree(register salloc_t * const restrict __s_nonnull __s,
           register void * restrict __s_nonnull           __ptr);
+
 __sattr_veccall static inline void spfree(register void * restrict __s_nonnull __ptr);
 
 #ifndef __sattr_no_overload
@@ -478,13 +439,13 @@ __sattr_flatten_veccall static inline void * __s_nullable
                   const salloc_size_t                            __nbytes,
                   const salloc_size_t                            __offset);
 
-__sattr_flatten_veccall_overload static inline void
+__sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
 #ifdef __sis_debug_defined__
 #  define salloc_trace(__sptr) __strace(__sptr)
 
-__sattr_veccall static inline void
+__sattr_flatten_veccall static inline void
     __strace(register salloc_t * const restrict __s_nonnull __s);
 #else
 #  define salloc_trace(__sptr)
@@ -656,7 +617,7 @@ __sattr_flatten_veccall_overload static inline void * __s_nullable
  * |||||||||||||||||||||||||
  */
 
-__sattr_flatten_veccall_overload static inline void
+__sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s) {
   if (__s->cursor != __s->start) {
     __s->cursor = __s->start;
@@ -789,10 +750,10 @@ __sattr_flatten_veccall static inline void
     __fragptr_payload = (__s_tag_t)__st_init(__fragsize, __st_not_busy);
   } else {
     /**
-     * may seem useless at first sight, because for the \c __bestptr I already set it's
-     * size in \c __salloc_find_best_chunk, but there I actually set only
-     * \c __require_size , but \c __bestsize can be grater than that value only for a few
-     * bytes, and less then \c (__bestsize-__st_bd_size)
+     * may seem useless at first sight, because for the \c __bestptr I already set
+     * it's size in \c __salloc_find_best_chunk, but there I actually set only \c
+     * __require_size , but \c __bestsize can be grater than that value only for a
+     * few bytes, and less then \c (__bestsize-__st_bd_size)
      */
     __fragptr_header  = __s2c_tag(__bestptr);
     __fragptr_footer  = __s2c_tag(__bestptr + __bestsize + __st_size);
@@ -1012,8 +973,8 @@ __sattr_flatten_veccall_overload static inline void
 #ifdef __sis_gdi_buffer_defined__
 
 /**
- * Below just an interfaces\accessors to all the standard s-allocators via gdi buffer,
- * so there is no additional prototypes or any other comments.
+ * Below just an interfaces\accessors to all the standard s-allocators via gdi
+ * buffer, so there is no additional prototypes or any other comments.
  */
 
 __sattr_veccall_const static inline salloc_t * __s_nonnull __salloc_get_gdi_buffer(void) {
@@ -1116,7 +1077,7 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
 #    pragma GCC diagnostic ignored "-Wformat"
 #  endif
 
-__sattr_veccall_overload static inline void
+__sattr_flatten_veccall static inline void
     __strace(register salloc_t * const restrict __s_nonnull __s) {
   __s_ptr_t iptr   = __s->start;
   __s_ptr_t cursor = __s->cursor;
@@ -1186,8 +1147,6 @@ __sattr_veccall_overload static inline void
 #  undef __sattr_overload
 #  undef __sattr_flatten
 #  undef __sattr_munused
-#  undef __sattr_packed
-#  undef __sattr_deprecated
 #  undef __sattr_veccall_const
 #  undef __sattr_veccall_const_overload
 #  undef __sattr_veccall_overload

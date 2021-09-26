@@ -1,15 +1,20 @@
 {
-  "configurations": [
-    {
-      "name": "Linux",
-      "includePath": ["${workspaceFolder}/**"],
-      "defines": [],
-      "compilerPath": "/usr/bin/clang",
-      "compilerArgs": ["-std=c2x", "-march=native", "-Wall", "-Werror", "-Wextra"],
-      "intelliSenseMode": "linux-clang-x64",
-      "cStandard": "c17",
-      "cppStandard": "c++20"
-    }
-  ],
-  "version": 4
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "compilerArgs": [
+                "-Wall", "-Wextra", "-Werror", "-Wunused", "-Wno-#warnings", "-Wno-cpp", "-std=c2x",
+                "-march=native", "-mtune=native", "-Ofast", "-pipe", "-flto", "-fpic"
+            ],
+            "intelliSenseMode": "linux-clang-x64",
+            "cStandard": "c17",
+            "cppStandard": "c++20"
+        }
+    ],
+    "version": 4
 }

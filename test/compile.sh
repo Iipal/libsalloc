@@ -4,7 +4,7 @@ BUILD_TYPE=$1
 
 CC=clang
 
-CFLAGS="-Wall -Wextra -Werror -Wunused -Wno-#warnings -std=c2x"
+CFLAGS="-Wall -Wextra -Werror -Wunused -Wno-#warnings -std=c2x -Wno-cpp"
 CFLAGS_OPTIMIZE="-march=native -mtune=native -Ofast -pipe -flto -fpic"
 CFLAGS_DEBUG="-g"
 CFLAGS_ASM="-march=native -mtune=native -Ofast -pipe -S -masm=intel"
