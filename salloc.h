@@ -15,6 +15,16 @@
 #  pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
+#ifndef __has_attribute
+#  define __has_attribute(__attr) 0
+#endif
+#ifndef __has_feature
+#  define __has_feature(__attr) 0
+#endif
+#ifndef __has_extension
+#  define __has_extension(__attr) __has_feature(__attr)
+#endif
+
 #ifndef SALLOC_DEFAULT_ALIGNMENT
 /**
  * You can manually specify the default alignment of the size of each pointer.
@@ -68,8 +78,15 @@
  * In this case it's global interface to access global static buffer without manually
  * creating the \c salloc_t object. Size of this buffer can be specified with
  * \c SALLOC_GDI_BUFFER_SIZE .
+ *
+ * clang compiler with \c overloadable attribute is required for this feature.
  */
-#  define __sis_gdi_buffer_defined__ 1
+#  if __has_attribute(overloadable)
+#    define __sis_gdi_buffer_defined__ 1
+#  else
+#    define __sis_gdi_buffer_defined__ 0
+#    warning "salloc GDI feature can't be used without clang attribute 'overlodable'."
+#  endif
 
 #  ifndef SALLOC_GDI_BUFFER_SIZE
 /**
@@ -343,6 +360,10 @@ __sattr_veccall_overload static inline void
 __sattr_veccall static inline void spfree(register void * restrict __s_nonnull __ptr);
 
 #ifndef __sattr_no_overload
+/**
+ * --- OVERLOADS:
+ */
+
 __sattr_flatten_veccall_overload static inline void * __s_nullable
     salloc(register salloc_t * const restrict __s_nonnull __s,
            register const salloc_size_t                   __size,
@@ -381,15 +402,6 @@ __sattr_flatten_veccall static inline void * __s_nullable
 __sattr_flatten_veccall static inline void
     salloc_delete(register salloc_t * const restrict __s_nonnull __s);
 
-#ifdef __sis_debug_defined__
-#  define salloc_trace(__sptr) __strace(__sptr)
-
-__sattr_flatten_veccall static inline void
-    __strace(register salloc_t * const restrict __s_nonnull __s);
-#else
-#  define salloc_trace(__sptr)
-#endif
-
 __sattr_flatten_veccall_overload static inline salloc_size_t
     salloc_capacity(register salloc_t * const restrict __s_nonnull __s);
 
@@ -409,6 +421,10 @@ __sattr_flatten_veccall static inline salloc_ssize_t
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
 
 #ifndef __sattr_no_overload
+/**
+ * --- OVERLOADS:
+ */
+
 __sattr_veccall_const_overload static inline void
     salloc_new(register const void * const restrict __s_nonnull buff,
                register const salloc_size_t                     capacity,
@@ -434,6 +450,15 @@ __sattr_flatten_veccall_overload static inline salloc_ssize_t
                   register const salloc_size_t                   __size,
                   register const salloc_size_t                   __nmemb)
         __sattr_diagnose_align(__size, SALLOC_MIN_ALLOC_SIZE);
+#endif
+
+#ifdef __sis_debug_defined__
+#  define salloc_trace(__sptr) __strace(__sptr)
+
+__sattr_flatten_veccall static inline void
+    __strace(register salloc_t * const restrict __s_nonnull __s);
+#else
+#  define salloc_trace(__sptr)
 #endif
 
 /**
@@ -909,7 +934,7 @@ __sattr_flatten_veccall_overload static inline void
  * -----------------------------
  */
 
-#ifdef __sis_gdi_buffer_defined__
+#if __sis_gdi_buffer_defined__
 
 /**
  * Below just an interfaces\accessors to all the standard s-allocators via gdi
@@ -1078,7 +1103,6 @@ __sattr_flatten_veccall static inline void
 
 #ifdef __sis_attrs_defined__
 #  undef __sis_attrs_defined__
-#  undef __sis_cpp_attr__
 #  undef __sattr_diagnose_if
 #  undef __sattr_diagnose_align
 #  undef __sattr_veccall
@@ -1096,10 +1120,6 @@ __sattr_flatten_veccall static inline void
 #ifdef __sis_null_defined__
 #  undef __sis_null_defined__
 #  undef NULL
-#endif
-
-#ifdef __sis_c2x_attrs_force__
-#  undef __sis_c2x_attrs_force__
 #endif
 
 #if __sis_macroses_defined__
