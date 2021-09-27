@@ -79,54 +79,13 @@
 #  endif
 #endif
 
-#ifdef SALLOC_C2X_ATTRS
-#  if 9 > __clang_major__
-#    warning \
-        "Your compiler is too old and it doesn't support C2X styled attributes at all."
-#  else
-
-/**
- * Force enabling c2x-style attributes. (At least in clang-12 there is no indentation on
- * compile-time for C2X-standard and it's features)
- *
- * WARNING: make sure that your compiler supports it!
- * For example: C2X-styled attributes will only works correctly with clang >=11.0.0
- * and with \c -std=c2x compiler option. Otherwise \c -std=c2x option will not work with
- * clang <9.0.0 and before 11.0.0 all of the C2X-styled attributes are not yet
- * implemented. So required compiler for this configuration IS clang >=11.0.0
- *
- * NOTE: VSCode C/C++ extension doesn't like C2X attributes.
- */
-#    define __sis_c2x_attrs_force__ 1
-#  endif
-#endif
-
 /**
  * ---------------------
  * ATTRIBUTES DEFINITION
  * ---------------------
  */
 
-#ifndef __has_attribute
-#  define __has_attribute(__attr) 0
-#endif
-#ifndef __has_feature
-#  define __has_feature(__attr) 0
-#endif
-#ifndef __has_extension
-#  define __has_extension(__attr) __has_feature(__attr)
-#endif
-
 #define __sis_attrs_defined__ 1
-
-#if defined(__sis_c2x_attrs_force__) || \
-    (defined(__clang__) && \
-     (__has_extension(cxx_attributes) || __has_feature(cxx_attributes) || \
-      (defined(__STDC_VERSION__) && __STDC_VERSION__ > 201710L)))
-#  define __sis_cpp_attr__ 1
-#else
-#  define __sis_cpp_attr__ 0
-#endif
 
 #if __has_attribute(diagnose_if)
 #  define __sattr_diagnose_if(x, msg, type) __attribute__((diagnose_if(x, msg, type)))
@@ -140,31 +99,19 @@
                       "error")
 
 #if __has_attribute(vectorcall)
-#  if __sis_cpp_attr__
-#    define __sattr_veccall [[clang::vectorcall]]
-#  else
-#    define __sattr_veccall __attribute__((vectorcall))
-#  endif
+#  define __sattr_veccall __attribute__((vectorcall))
 #else
 #  define __sattr_veccall
 #endif
 
 #if __has_attribute(const)
-#  if __sis_cpp_attr__
-#    define __sattr_const [[gnu::const]]
-#  else
-#    define __sattr_const __attribute__((const))
-#  endif
+#  define __sattr_const __attribute__((const))
 #else
 #  define __sattr_const
 #endif
 
 #if __has_attribute(overloadable)
-#  if __sis_cpp_attr__
-#    define __sattr_overload [[clang::overloadable]]
-#  else
-#    define __sattr_overload __attribute__((overloadable))
-#  endif
+#  define __sattr_overload __attribute__((overloadable))
 #else
 #  define __sattr_overload
 #  define __sattr_no_overload 1
@@ -172,21 +119,13 @@
 #endif
 
 #if __has_attribute(flatten)
-#  if __sis_cpp_attr__
-#    define __sattr_flatten [[flatten]]
-#  else
-#    define __sattr_flatten __attribute__((flatten))
-#  endif
+#  define __sattr_flatten __attribute__((flatten))
 #else
 #  define __sattr_flatten
 #endif
 
 #if __has_attribute(maybe_unused)
-#  ifdef __sis_cpp_attr
-#    define __sattr_munused [[maybe_unused]]
-#  else
-#    define __sattr_munused __attribute__((maybe_unused))
-#  endif
+#  define __sattr_munused __attribute__((maybe_unused))
 #elif __has_attribute(unused)
 #  define __sattr_munused __attribute__((unused))
 #else
@@ -269,7 +208,7 @@ typedef struct __s_salloc_tag {
 #endif
 
   __s_uintptr_t               size : __S_TAG_SIZE_BITS; /* size of current pointer */
-  __s_uint8_t __sattr_munused __alignment : __S_TAG_ALIGN_BITS; /* as it is */
+  __sattr_munused __s_uint8_t __alignment : __S_TAG_ALIGN_BITS; /* as it is */
   __s_uint8_t busy : __S_TAG_BUSY_BITS; /* is current pointer was freed or not */
 } __s_tag_t;
 

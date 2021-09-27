@@ -88,12 +88,9 @@ You can specify a few settings before include `salloc.h`:
  - `SALLOC_AFTERUSE_INTERNAL_ATTR`: for use [attributes](#attributes) outside of `salloc.h`.
  - `SALLOC_NULLABILITY`: enables clang [nullability checks](https://clang.llvm.org/docs/analyzer/developer-docs/nullability.html) extension. They are can still be accessible if `SALLOC_AFTERUSE_INTERNAL_MACROS` is defined.
  - `SALLOC_GDI_BUFFER`: more about this setting [in the last section](#gdi).
- - `SALLOC_C2X_ATTRS`: Force enabling C2X-styled attributes.
-   - **!!! WARNING !!!**: make sure that your compiler supports it! For example: C2X-styled attributes will only works with `clang >=9.0.0` and with `-std=c2x` compiler option.
 
 Example:
 ```c
-#define SALLOC_C2X_ATTRS
 #define SALLOC_DEFAULT_ALIGNMENT 1337
 #define SALLOC_DEBUG
 #define SALLOC_NULLABILITY
