@@ -195,15 +195,18 @@ typedef struct s_salloc_t {
 ## Public Macroses
 
  - `SALLOC_EACH_ALLOC_OVERHEAD`: Size in bytes how much each new s-allocation will take memory in static buffer for mapping via Boundary Tags.
+
  - `SALLOC_MIN_ALLOC_SIZE`: Minimum allocation size in static buffer.
     - Doesn't counts `SALLOC_EACH_ALLOC_OVERHEAD`.
     - Depends on `SALLOC_DEFAULT_ALIGNMENT`, because minimal s-allocation size is equal to default alignment.
+
  - `SALLOC_MIN_BUFFER_SIZE`: Minimum required memory size in static buffer for at least 1 pointer with at least `SALLOC_MIN_ALLOC_SIZE` bytes size.
     - Counts `SALLOC_EACH_ALLOC_OVERHEAD`.
- - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a buffer with size of `capacity` prefixed with `name` and `salloc_t` object for s-allocators. It's creates:
-   - `static salloc_buffer_t name##_buff[(capacity)];`
-   - `const salloc_size_t name##_buff_capacity = (capacity);`: It creates after the `name##_buff` definition to avoid VLA, but store the buffer capacity.
-   - `salloc_t name##_slc = salloc_new(name##_buff, name##_buff_capacity);`
+
+ - `salloc_new_fast(name, capacity)`: Fast shorthand for creating a static memory buffer for [S-Allocators](#s-allocators). Be aware that this macro implicitly creates 3 variables:
+   - `static salloc_buffer_t name##_buff[(capacity)];`: static memory buffer with size of `capacity`;
+   - `const salloc_size_t name##_buff_capacity = (capacity);`: It creates after the `name##_buff` definition to avoid VLA, but for store the buffer `capacity` expression result anyway.
+   - `salloc_t name##_slc = salloc_new(name##_buff, name##_buff_capacity);`: `salloc_t` object for work [S-Allocators](#s-allocators).
 
 ## Macroses
 
@@ -213,7 +216,9 @@ typedef struct s_salloc_t {
 > `__s2c` prefix stands as shortcut for `__salloc_to_cast`.
 
  - `__s2c_uiptr(x) ((__s_uintptr_t)(x))`
+
  - `__s2c_ptr(x)   ((__s_ptr_t)(x))`
+
  - `__s2c_tag(x)   ((__s_tag_t *)(void *)(x))`
 
 ***
@@ -222,17 +227,29 @@ typedef struct s_salloc_t {
 > `__st` prefix stands as shortcut for `__salloc_tag`.
 
  - `__st_init(size, busy)`: Initializer for `__s_tag_t`.
+
  - `__st_align_default`: Shortcut for `SALLOC_DEFAULT_ALIGNMENT`.
+
  - `__st_align_size(x)`: Forward-Align `x` by `__st_align_default`.
    - > Example: By default, on x86_64, 8 will align to -> 16 bytes. 24->32 and so on. That means that defaul `SALLOC_MIN_BUFFER_SIZE` value is equal to 32.
+
+
  - `__st_size`: Size of one boundary tag.
+
  - `__st_bd_size`: Size of two boundary tags. bd stands for bi-directional. Equals to `SALLOC_EACH_ALLOC_OVERHEAD`.
+
  - `__st_ptr_get_tag(x)`: Used to get the Boundary Tag meta-data(`__s_tag_t*`) from the `void* x` .
+
  - `__st_tag_get_ptr(x)`: Used to return a valid pointer to user. Just like [s-allocators](#s-allocators) do.
+
  - `__st_busy`: constant 1. Used to indicate is memory chunk is busy.
+
  - `__st_not_busy`: constant 0.
+
  - `__st_get_busy(x)`: gets from `x` busy-indicator (assumed that `x` is a pointer-type).
+
  - `__st_get_size(x)`: gets from `x` size of memory chunk (assumed that `x` is a pointer-type).
+
  - `__st_is_free(x) !__st_get_busy(x)`: Returns true is memory chunk was freed (assumed that `x` is a pointer-type).
 
 ## S-Allocators

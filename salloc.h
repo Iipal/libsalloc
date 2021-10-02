@@ -275,6 +275,11 @@ typedef struct s_salloc_t {
 
 /**
  * Fast shorthand for creating a buffer and \c salloc_t object for s-allocators.
+ *
+ * Be aware that this macro implicitly creates 3 variables:
+ * static salloc_buffer_t name_buff[capacity];
+ * const salloc_size_t name_buff_capacity = (capacity);
+ * salloc_t name_slc = salloc_new(name_buff, name_buff_capacity);
  */
 #define salloc_new_fast(name, capacity) \
   static salloc_buffer_t name##_buff[(capacity)]; \
