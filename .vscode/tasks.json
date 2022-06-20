@@ -5,7 +5,8 @@
   "isBackground": true,
   "tasks": [
     {
-      "label": "current_ebota",
+      "label": "ASM main.c [Optimizated]",
+      "detail": "test/main.c -> test/main.S",
       "type": "shell",
       "command": "./test/compile.sh asm test/main.c test/main",
       "problemMatcher": ["$gcc"],
@@ -18,7 +19,22 @@
       }
     },
     {
-      "label": "asm_ebota",
+      "label": "ASM main.c [Not optimized]",
+      "detail": "test/main.c -> test/main_dbg.S",
+      "type": "shell",
+      "command": "./test/compile.sh asm_debug test/main.c test/main",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Assembler [Optimized]",
+      "detail": "*active file* -> *active file*.S",
       "type": "shell",
       "command": "./test/compile.sh asm ${relativeFile} ${relativeFileDirname}/${fileBasenameNoExtension}",
       "problemMatcher": ["$gcc"],
@@ -31,7 +47,36 @@
       }
     },
     {
-      "label": "run_ebota",
+      "label": "Assembler [Not optimized]",
+      "detail": "*active file* -> *active file*_dbg.S",
+      "type": "shell",
+      "command": "./test/compile.sh asm ${relativeFile} ${relativeFileDirname}/${fileBasenameNoExtension}",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Sanitize",
+      "detail": "Compile with sanitize flags *active file* to ./sanitize and run it.",
+      "type": "shell",
+      "command": "./test/compile.sh sanitize ${relativeFile} && ./sanitize",
+      "problemMatcher": ["$gcc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Build & Run",
+      "detail": "Compile with optimization *active file* to ./build and run it.",
       "type": "shell",
       "command": "./test/compile.sh build ${relativeFile} && ./build",
       "problemMatcher": ["$gcc"],
@@ -44,7 +89,8 @@
       }
     },
     {
-      "label": "log_ebota",
+      "label": "Build, Run & Log",
+      "detail": "Compile with optimization *active file* to ./build and run it, stderr output saves to *active file*.log file.",
       "type": "shell",
       "command": "./test/compile.sh build ${relativeFile} 2> ${relativeFileDirname}/${fileBasenameNoExtension}.log",
       "problemMatcher": ["$gcc"],
@@ -57,10 +103,24 @@
       }
     },
     {
-      "label": "dbg_ebota",
+      "label": "Debug",
+      "detail": "Compile without any optimizations *active file* to ./debug for debuging. Note: this task does not starts the debugger.",
       "type": "shell",
       "command": "./test/compile.sh debug ${relativeFile}",
       "problemMatcher": ["$gcc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Generate Doxygen Documentation",
+      "type": "shell",
+      "command": "doxygen salloc.doxygen",
+      "problemMatcher":[],
       "presentation": {
         "echo": true,
         "reveal": "silent",

@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "*.h": "c",
+        "*.c": "c",
+        "**/*.js": "javascriptreact",
+        "**/*.html": "html",
+        "**/templates/**/*.html": "django-html",
+        "**/requirements{/**,*}.{txt,in}": "pip-requirements",
+        "*.js": "javascript",
+        ".clang-format": "jsonc",
+        "type_traits": "c",
+        "array": "c",
+        "functional": "c",
+        "istream": "c",
+        "ostream": "c",
+        "tuple": "c",
+        "utility": "c"
+    }
+}
