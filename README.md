@@ -8,11 +8,11 @@ Static memory allocator.
 
 ## General Idea
 
-Creating the simplest header-only library with malloc-like behavior for mapping\allocation memory on static buffer, so all work with memory mostly can be optimized and calculated at compile-time.
+Header-only library with malloc-like behavior for mapping\allocation memory on static buffer, so all work with memory mostly can be optimized and calculated at compile-time.
 
 ## Internal
 
-Refer for more details of everything in [DOCS.md](DOCS.md)
+More details of everything documented in code.
 
 Code logic based on [this](https://cs.wellesley.edu/~cs240/s19/slides/malloc.pdf) document, which explains everything about most common malloc-like allocator implementations. Details:
 

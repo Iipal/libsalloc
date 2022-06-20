@@ -2,15 +2,15 @@
 #define SALLOC_DEBUG
 #include "../salloc.h"
 
-// USE macroses instead of `const salloc_size_t ...` to avoid any kind of VLA definitions
+// USE macroses instead of `const size_t ...` to avoid any kind of VLA definitions
 #define TEST_N_ELEMENTS 5
 
 int main(void) {
   // sda stands for shortcut for this setting test
   salloc_new_fast(sda, SALLOC_MIN_BUFFER_SIZE * TEST_N_ELEMENTS);
-  salloc_ptr_t tests[TEST_N_ELEMENTS] = {0};
+  void * tests[TEST_N_ELEMENTS] = {0};
 
-  for (salloc_size_t i = 0; TEST_N_ELEMENTS > i; ++i) {
+  for (size_t i = 0; TEST_N_ELEMENTS > i; ++i) {
     tests[i] = salloc(&sda_slc, SALLOC_MIN_ALLOC_SIZE);
   }
 

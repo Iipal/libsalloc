@@ -7,7 +7,7 @@
 int main(void) {
   salloc_new_fast(, SALLOC_MIN_BUFFER_SIZE);
 
-  salloc_ptr_t chunk = salloc(&_slc, SALLOC_MIN_ALLOC_SIZE);
+  void * chunk = salloc(&_slc, SALLOC_MIN_ALLOC_SIZE);
 
   memcpy(chunk, "testing this !!", SALLOC_MIN_ALLOC_SIZE);
   printf("%s\n", chunk);
