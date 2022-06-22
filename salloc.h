@@ -694,13 +694,14 @@ __sattr_flatten_veccall_overload __sattr_inline salloc_t * S_Nonnull
   __dst->cursor = __dst->start;
 
   while (__dst_iptr < __dst->end && __src_iptr < __src->cursor) {
-    __s_tag_t * restrict __src_iptr_tag = __s2c_tag(__src_iptr);
-    const size_t  __src_iptr_copy_size  = __src_iptr_tag->size + __st_bd_size;
+    const __s_tag_t * const restrict __src_iptr_tag = __s2c_tag(__src_iptr);
+    const size_t __src_iptr_copy_size               = __src_iptr_tag->size + __st_bd_size;
+    const unsigned char * const restrict __src_iptr_end =
+        __src_iptr + __src_iptr_copy_size;
     const ssize_t __dst_available_space = salloc_unused(__dst);
 
-    if (0 < __dst_available_space &&
-        __s2c_uiptr(__dst_available_space) >= __src_iptr_copy_size) {
-      for (size_t i = 0; __src_iptr_copy_size > i; ++i) {
+    if (__s2c_uiptr(__dst_available_space) >= __src_iptr_copy_size) {
+      while (__src_iptr < __src_iptr_end) {
         *__dst_iptr++ = *__src_iptr++;
       }
     } else {
