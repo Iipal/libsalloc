@@ -3,48 +3,53 @@
 
 #define BUFF_SIZE 12288
 
+/*
+
+static buff       [           12288 bytes          ]
+smoll             [ 4096b ]
+big                       [       8192 bytes       ]
+
+
+allocating in big 2 pointers with 16 and 8000 bytes
+big [          8192 bytes          ]
+->
+big [[16][       8000      ]  144  ]
+
+then calling salloc_copy(unmapped)
+smoll             [    4096    ]
+->
+smoll             [[16]  4064  ]
+
+*/
+
 int main(void) {
-  static salloc_buffer_t buff[BUFF_SIZE];
+  static unsigned char buff[BUFF_SIZE];
 
-  salloc_ptr_t        unmapped_buff          = buff;
-  const salloc_size_t unmapped_buff_capacity = 4096;
+  unsigned char * restrict smoll = buff;
+  const size_t smoll_capacity    = 4096;
 
-  salloc_ptr_t        mapped_buff          = buff + unmapped_buff_capacity;
-  const salloc_size_t mapped_buff_capacity = BUFF_SIZE - unmapped_buff_capacity;
+  unsigned char * restrict big = buff + smoll_capacity;
+  const size_t big_capacity    = BUFF_SIZE - smoll_capacity;
 
-  salloc_t unmapped_slc = salloc_new(unmapped_buff, unmapped_buff_capacity);
-  salloc_t mapped_slc   = salloc_new(mapped_buff, mapped_buff_capacity);
+  salloc_t smoll_slc = salloc_new(smoll, smoll_capacity);
+  salloc_t big_slc   = salloc_new(big, big_capacity);
 
-  salloc_ptr_t mapped_ptr = salloc(&mapped_slc, 16);
-  salloc_ptr_t big_chunk =
-      salloc(&mapped_slc,
-             SALLOC_MIN_ALLOC_SIZE *
-                 500); // used later only for demonstration of "smart" salloc_copy
-  (void)big_chunk;
-
-  salloc_ptr_t unmapped_ptr = salloc_copy(&unmapped_slc,
-                                          "it's an unmapped buffer ptr",
-                                          sizeof("it's an unmapped buffer ptr"));
-
-  printf("!! unmapped_slc:\n");
-  salloc_trace(&unmapped_slc);
-  printf("\nunmapped_ptr: `%s`\n\n", unmapped_ptr);
-
-  printf("!! mapped_slc:\n");
-  salloc_trace(&mapped_slc);
+  void * mapped_ptr = salloc(&big_slc, 16);
+  void * big_chunk  = salloc(&big_slc, SALLOC_MIN_ALLOC_SIZE * 500);
 
   printf("\n-----------------------------------------------------\n"
-         "copying all the data from mapped_slc to unmapped_slc:"
+         "copying all the data to smoll_slc from big_slc:"
          "\n-----------------------------------------------------\n");
-  salloc_copy(&unmapped_slc, &mapped_slc);
+  salloc_copy(&smoll_slc, &big_slc);
 
-  printf("\n!! unmapped_slc:\n");
-  salloc_trace(&unmapped_slc);
+  printf("\n!! smoll_slc:\n");
+  salloc_trace(&smoll_slc);
 
-  printf("\n!! mapped_slc:\n");
-  salloc_trace(&mapped_slc);
+  printf("\n!! big_slc:\n");
+  salloc_trace(&big_slc);
 
   sfree(mapped_ptr);
-  salloc_delete(&unmapped_slc);
-  salloc_delete(&mapped_slc);
+  sfree(big_chunk);
+  salloc_delete(&smoll_slc);
+  salloc_delete(&big_slc);
 }
