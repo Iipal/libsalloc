@@ -278,6 +278,12 @@ typedef struct {
 #define SALLOC_EACH_ALLOC_OVERHEAD (sizeof(__s_tag_t) * 2)
 
 /**
+ * \brief Calculates the correct, and aligned size for static buffer
+ */
+#define SALLOC_CALC_BUFF_SIZE(__size, __nmemb) \
+  ((__nmemb) * (__st_align_size(__size) + SALLOC_EACH_ALLOC_OVERHEAD))
+
+/**
  * \brief Minium allocation size in static buffer.
  */
 #define SALLOC_MIN_ALLOC_SIZE SALLOC_DEFAULT_ALIGNMENT
