@@ -9,3 +9,4 @@ test/**.S
 **/build
 **/debug
 **/sanitize
+/html
